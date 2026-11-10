@@ -1,0 +1,31 @@
+# Java
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.log
+hs_err_pid*
+
+# Build
+build/
+out/
+target/
+bin/
+.gradle/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# macOS
+.DS_Store
+
+# Obsidian
+.obsidian/
+
+# Course material (keep out of public repo)
+DP Term Project 2026 Life Game*.pdf
