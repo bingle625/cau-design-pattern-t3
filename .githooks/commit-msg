@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+source .githooks/lib/output.sh
+subject=$(head -n 1 "$1")
+
+# Preserve Git-generated merge/revert messages and autosquash commits.
+case "$subject" in
+    'Merge '*|'Revert "'*|'fixup! '*|'squash! '*) exit 0 ;;
+esac
+if ! printf '%s\n' "$subject" | grep -E -q '^(feat|fix|refactor|test|docs|chore)(\([a-zA-Z0-9_./-]+\))?!?: [^[:space:]].*$'; then
+    fail 'Use: <type>: <summary>'
+    printf '  Types: feat | fix | refactor | test | docs | chore\n'
+    printf '  Example: feat: E1 생존 규칙을 Strategy 패턴으로 분리\n'
+    printf '  Optional scope: test(life): Blinker 회귀 테스트 추가\n'
+    exit 1
+fi

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+source .githooks/lib/output.sh
+
+heading 'Pre-commit checks'
+step 'Checking staged whitespace'
+git diff --cached --check
+
+step 'Checking staged conflict markers'
+while IFS= read -r -d '' path; do
+    if git show ":$path" | grep -I -E '^(<<<<<<< |=======|>>>>>>> )' >/dev/null; then
+        fail "Conflict marker found: $path"
+        exit 1
+    fi
+done < <(git diff --cached --name-only --diff-filter=ACMRT -z)
+
+if git diff --cached --name-only | grep -E '^(src/|gradle/|gradlew(\.bat)?$|[^/]*\.gradle(\.kts)?$|gradle\.properties$|scripts/run-gradle\.sh$)' >/dev/null; then
+    step 'Running JUnit against the staged files'
+    snapshot=$(mktemp -d "${TMPDIR:-/tmp}/holub-pre-commit.XXXXXX")
+    trap 'rm -rf "$snapshot"' EXIT
+    # Test exactly the index; leave unstaged edits and the working tree intact.
+    git checkout-index --all --ignore-skip-worktree-bits --prefix="$snapshot/"
+    if ! (cd "$snapshot" && bash scripts/run-gradle.sh test --console=plain --no-daemon) > "$snapshot/check.log" 2>&1; then
+        cat "$snapshot/check.log"
+        fail 'JUnit failed. Fix the staged changes and try again.'
+        exit 1
+    fi
+    success 'JUnit passed'
+else
+    step 'JUnit skipped (no source or build changes)'
+fi
+success 'Ready to commit'
