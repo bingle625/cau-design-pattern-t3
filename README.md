@@ -242,7 +242,7 @@ bash scripts/setup-hooks.sh
 - 문서만 수정하면 JUnit은 생략한다. 첫 테스트 시 Gradle과 의존성을 내려받을 수 있으므로 JDK 17 이상과 네트워크가 필요하다.
 - 터미널에서는 색상으로 결과를 표시하고 IDE·로그에서는 일반 텍스트를 사용한다. `NO_COLOR=1`로 색상을 끌 수 있다.
 - 훅은 로컬 검사이므로 팀원마다 설치해야 한다. 해제하려면 `git config --local --unset core.hooksPath`를 실행한다.
-- 테스트만 직접 실행하려면 `bash scripts/run-gradle.sh test`를 사용한다. 명시한 `JAVA_HOME`을 우선 사용하며, macOS에 등록되지 않은 Homebrew JDK도 찾는다.
+- 테스트만 직접 실행하려면 `bash scripts/run-gradle.sh test`를 사용한다. 명시한 `JAVA_HOME`을 우선 사용한다. PATH에 Java가 없거나 17 미만이면 macOS에 등록된 JDK와 Homebrew JDK를 순서대로 찾는다. `JAVA_HOME`이 잘못되었거나 호환 JDK를 찾지 못하면 수정 방법을 안내한다.
 
 ### 커밋 메시지 형식
 
