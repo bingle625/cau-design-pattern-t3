@@ -229,7 +229,22 @@ java -jar build/libs/holub-life-1.02.jar   # build 후 jar로 실행
 | `refactor/D{n}-{설명}` | 설계 개선 |
 | `docs/{설명}` | 문서 작업 |
 
-### 커밋 메시지
+### Git hooks 설정
+
+클론한 뒤 한 번 실행한다. Git Bash를 사용하는 Windows에서도 같은 명령을 쓴다.
+
+```bash
+bash scripts/setup-hooks.sh
+```
+
+- **pre-commit**: 스테이징한 파일의 공백 오류와 충돌 마커를 검사한다. 소스나 Gradle 설정이 바뀌면 **스테이징한 파일만 임시 폴더에 복사해 JUnit을 실행**한다. 아직 스테이징하지 않은 작업은 테스트에 섞이지 않는다.
+- **commit-msg**: 아래 커밋 메시지 형식을 검사한다. 선택적으로 `test(life): 설명`처럼 범위를 붙일 수 있다. Git의 merge/revert 및 fixup/squash 메시지는 허용한다.
+- 문서만 수정하면 JUnit은 생략한다. 첫 테스트 시 Gradle과 의존성을 내려받을 수 있으므로 JDK 17 이상과 네트워크가 필요하다.
+- 터미널에서는 색상으로 결과를 표시하고 IDE·로그에서는 일반 텍스트를 사용한다. `NO_COLOR=1`로 색상을 끌 수 있다.
+- 훅은 로컬 검사이므로 팀원마다 설치해야 한다. 해제하려면 `git config --local --unset core.hooksPath`를 실행한다.
+- 테스트만 직접 실행하려면 `bash scripts/run-gradle.sh test`를 사용한다. 명시한 `JAVA_HOME`을 우선 사용하며, macOS에 등록되지 않은 Homebrew JDK도 찾는다.
+
+### 커밋 메시지 형식
 
 ```text
 <type>: <요약>
