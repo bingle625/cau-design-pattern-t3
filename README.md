@@ -331,7 +331,7 @@ type: feat | fix | refactor | test | docs | chore
 
 > 링크별 내용과 활용 방안: [`docs/reference/resources.md`](docs/reference/resources.md)
 
-- 과제 안내문: `DP Term Project 2026 Life Game - updated-4.pdf` (10-13 업데이트판, 저장소에는 올리지 않음)
+- 과제 안내문: [DP Term Project 2026 Life Game - updated-4.pdf](<docs/reference/DP Term Project 2026 Life Game - updated-4.pdf>) (10-13 업데이트판)
 - Holub Life Game: <https://holub.com/software/life/index.html> — 원본 [`HolubLife.jar`](https://holub.com/software/life/HolubLife.jar)
 - Allen Holub, *Holub on Patterns: Learning Design Patterns by Looking at Code* (Apress, 2004)
 - Bitstorm Game of Life: <https://bitstorm.org/gameoflife/standalone/>
