@@ -101,6 +101,7 @@ public class Universe extends JPanel
 					bounds.y = 0;
 					outermostCell.userClicked(e.getPoint(),bounds);
 					repaint();
+					publishStatistics();
 				}
 			}
 		);
