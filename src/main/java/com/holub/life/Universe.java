@@ -186,17 +186,17 @@ public class Universe extends JPanel
 	{	boolean loaded = false;
 		try
 		{
-			FileInputStream in = new FileInputStream(
-			   Files.userSelected(".",".life","Life File","Load"));
+			Storable memento;
+			try( FileInputStream in = new FileInputStream(
+					Files.userSelected(".",".life","Life File","Load")) )
+			{	Clock.instance().stop();
+				// Prepare the memento on an empty board to leave the current board untouched.
+				memento = outermostCell.create().createMemento();
+				memento.load( in );
+			}
 
-			Clock.instance().stop();		// stop the game and
-			outermostCell.clear();			// clear the board.
-
-			Storable memento = outermostCell.createMemento();
-			memento.load( in );
+			outermostCell.clear();
 			outermostCell.transfer( memento, new Point(0,0), Cell.LOAD );
-
-			in.close();
 			loaded = true;
 		}
 		catch( IOException theException )
