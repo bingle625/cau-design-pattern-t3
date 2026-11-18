@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.event.*;
 
 import com.holub.io.Files;
+import com.holub.tools.Publisher;
 import com.holub.ui.MenuSite;
 
 import com.holub.life.Cell;
@@ -29,6 +30,7 @@ import com.holub.life.Resident;
 public class Universe extends JPanel
 {	private 		final Cell  	outermostCell;
 	private static	final Universe 	theInstance = new Universe();
+	private final Publisher statisticsPublisher = new Publisher();
 
 	/** The default height and width of a Neighborhood in cells.
 	 *  If it's too big, you'll run too slowly because
@@ -161,6 +163,14 @@ public class Universe extends JPanel
 
 	public static Universe instance()
 	{	return theInstance;
+	}
+
+	public void addStatisticsListener(StatisticsListener listener)
+	{	statisticsPublisher.subscribe(listener);
+	}
+
+	public void removeStatisticsListener(StatisticsListener listener)
+	{	statisticsPublisher.cancelSubscription(listener);
 	}
 
 	private void doLoad()
