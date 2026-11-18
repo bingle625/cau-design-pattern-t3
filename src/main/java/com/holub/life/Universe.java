@@ -111,6 +111,7 @@ public class Universe extends JPanel
 			{	public void actionPerformed(ActionEvent e)
 				{	outermostCell.clear();
 					repaint();
+					publishStatistics();
 				}
 			}
 		);
