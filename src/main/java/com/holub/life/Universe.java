@@ -152,6 +152,7 @@ public class Universe extends JPanel
 					{	if( outermostCell.transition() )
 							refreshNow();
 					}
+					publishStatistics();
 				}
 			}
 		);
