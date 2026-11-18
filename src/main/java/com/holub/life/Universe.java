@@ -173,6 +173,12 @@ public class Universe extends JPanel
 	{	statisticsPublisher.cancelSubscription(listener);
 	}
 
+	void publishStatistics()
+	{	GameStatistics statistics = new GameStatistics(outermostCell.countAlive());
+		statisticsPublisher.publish(subscriber ->
+			((StatisticsListener) subscriber).statisticsChanged(statistics));
+	}
+
 	private void doLoad()
 	{	try
 		{
