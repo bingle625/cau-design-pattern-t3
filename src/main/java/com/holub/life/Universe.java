@@ -183,7 +183,8 @@ public class Universe extends JPanel
 	}
 
 	private void doLoad()
-	{	try
+	{	boolean loaded = false;
+		try
 		{
 			FileInputStream in = new FileInputStream(
 			   Files.userSelected(".",".life","Life File","Load"));
@@ -196,12 +197,15 @@ public class Universe extends JPanel
 			outermostCell.transfer( memento, new Point(0,0), Cell.LOAD );
 
 			in.close();
+			loaded = true;
 		}
 		catch( IOException theException )
 		{	JOptionPane.showMessageDialog( null, "Read Failed!",
 					"The Game of Life", JOptionPane.ERROR_MESSAGE);
 		}
 		repaint();
+		if( loaded )
+			publishStatistics();
 	}
 
 	private void doStore()
