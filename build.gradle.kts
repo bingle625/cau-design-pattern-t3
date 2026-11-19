@@ -42,3 +42,27 @@ tasks.test {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
+
+val guiTestSourceSet = sourceSets.create("guiTest") {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
+configurations[guiTestSourceSet.implementationConfigurationName]
+    .extendsFrom(configurations.testImplementation.get())
+configurations[guiTestSourceSet.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations.testRuntimeOnly.get())
+
+tasks.register<Test>("guiTest") {
+    group = "verification"
+    description = "Runs JUnit integration tests that require a display."
+    testClassesDirs = guiTestSourceSet.output.classesDirs
+    classpath = guiTestSourceSet.runtimeClasspath
+    useJUnitPlatform()
+    systemProperty("java.awt.headless", "false")
+    // MenuSite and Universe keep JVM-wide state.
+    forkEvery = 1
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}

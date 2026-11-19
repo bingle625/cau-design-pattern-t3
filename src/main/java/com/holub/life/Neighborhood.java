@@ -438,6 +438,14 @@ public final class Neighborhood implements Cell
 	{	return true;
 	}
 
+	public int countAlive()
+	{	int alive = 0;
+		for( Cell[] row : grid )
+			for( Cell cell : row )
+				alive += cell.countAlive();
+		return alive;
+	}
+
 	public int widthInCells()
 	{	return gridSize * grid[0][0].widthInCells();
 	}
