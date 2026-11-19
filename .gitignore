@@ -27,5 +27,6 @@ bin/
 # Obsidian
 .obsidian/
 
-# Course material (keep out of public repo)
-DP Term Project 2026 Life Game*.pdf
+# Local agent instructions
+AGENTS.md
+CLAUDE.md
