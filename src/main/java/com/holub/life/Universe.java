@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.event.*;
 
 import com.holub.io.Files;
+import com.holub.tools.Publisher;
 import com.holub.ui.MenuSite;
 
 import com.holub.life.Cell;
@@ -29,6 +30,7 @@ import com.holub.life.Resident;
 public class Universe extends JPanel
 {	private 		final Cell  	outermostCell;
 	private static	final Universe 	theInstance = new Universe();
+	private final Publisher statisticsPublisher = new Publisher();
 
 	/** The default height and width of a Neighborhood in cells.
 	 *  If it's too big, you'll run too slowly because
@@ -99,6 +101,7 @@ public class Universe extends JPanel
 					bounds.y = 0;
 					outermostCell.userClicked(e.getPoint(),bounds);
 					repaint();
+					publishStatistics();
 				}
 			}
 		);
@@ -108,6 +111,7 @@ public class Universe extends JPanel
 			{	public void actionPerformed(ActionEvent e)
 				{	outermostCell.clear();
 					repaint();
+					publishStatistics();
 				}
 			}
 		);
@@ -150,6 +154,7 @@ public class Universe extends JPanel
 					{	if( outermostCell.transition() )
 							refreshNow();
 					}
+					publishStatistics();
 				}
 			}
 		);
@@ -163,26 +168,44 @@ public class Universe extends JPanel
 	{	return theInstance;
 	}
 
+	public void addStatisticsListener(StatisticsListener listener)
+	{	statisticsPublisher.subscribe(listener);
+	}
+
+	public void removeStatisticsListener(StatisticsListener listener)
+	{	statisticsPublisher.cancelSubscription(listener);
+	}
+
+	void publishStatistics()
+	{	GameStatistics statistics = new GameStatistics(outermostCell.countAlive());
+		statisticsPublisher.publish(subscriber ->
+			((StatisticsListener) subscriber).statisticsChanged(statistics));
+	}
+
 	private void doLoad()
-	{	try
+	{	boolean loaded = false;
+		try
 		{
-			FileInputStream in = new FileInputStream(
-			   Files.userSelected(".",".life","Life File","Load"));
+			Storable memento;
+			try( FileInputStream in = new FileInputStream(
+					Files.userSelected(".",".life","Life File","Load")) )
+			{	Clock.instance().stop();
+				// Prepare the memento on an empty board to leave the current board untouched.
+				memento = outermostCell.create().createMemento();
+				memento.load( in );
+			}
 
-			Clock.instance().stop();		// stop the game and
-			outermostCell.clear();			// clear the board.
-
-			Storable memento = outermostCell.createMemento();
-			memento.load( in );
+			outermostCell.clear();
 			outermostCell.transfer( memento, new Point(0,0), Cell.LOAD );
-
-			in.close();
+			loaded = true;
 		}
 		catch( IOException theException )
 		{	JOptionPane.showMessageDialog( null, "Read Failed!",
 					"The Game of Life", JOptionPane.ERROR_MESSAGE);
 		}
 		repaint();
+		if( loaded )
+			publishStatistics();
 	}
 
 	private void doStore()

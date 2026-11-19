@@ -107,6 +107,10 @@ public final class Resident implements Cell
 	public Cell    create()			{return new Resident();			}
 	public int 	   widthInCells()	{return 1;}
 
+	public int countAlive()
+	{	return amAlive ? 1 : 0;
+	}
+
 	public Direction isDisruptiveTo()
 	{	return isStable() ? Direction.NONE : Direction.ALL ;
 	}

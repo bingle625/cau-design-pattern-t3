@@ -1,6 +1,9 @@
 package com.holub.life;
 
 import java.awt.*;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import javax.swing.*;
 import com.holub.ui.MenuSite;
 
@@ -12,10 +15,12 @@ import com.holub.ui.MenuSite;
 
 public final class Life extends JFrame
 {	
-	private static JComponent universe;
+	private final Universe universe;
+	private final StatisticsPanel statisticsPanel;
+	private boolean statisticsSubscribed;
 
 	public static void main( String[] arguments )
-	{	new Life();
+	{	SwingUtilities.invokeLater(Life::new);
 	}
 
 	private Life()
@@ -28,9 +33,34 @@ public final class Life extends JFrame
 
 		setDefaultCloseOperation	( EXIT_ON_CLOSE 		);
 		getContentPane().setLayout	( new BorderLayout()	);
-		getContentPane().add( Universe.instance(), BorderLayout.CENTER); //{=life.java.install}
+		universe = Universe.instance();
+		getContentPane().add( universe, BorderLayout.CENTER); //{=life.java.install}
+		statisticsPanel = new StatisticsPanel();
+		getContentPane().add( statisticsPanel, BorderLayout.SOUTH );
+		universe.addStatisticsListener(statisticsPanel);
+		statisticsSubscribed = true;
+
+		statisticsPanel.addHierarchyListener(event -> {
+			if ((event.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) != 0
+					&& !statisticsPanel.isDisplayable()) {
+				unsubscribeStatisticsPanel();
+			}
+		});
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent event) {
+				unsubscribeStatisticsPanel();
+			}
+		});
 
 		pack();
 		setVisible( true );
+	}
+
+	private void unsubscribeStatisticsPanel()
+	{	if( statisticsSubscribed )
+		{	universe.removeStatisticsListener(statisticsPanel);
+			statisticsSubscribed = false;
+		}
 	}
 }
