@@ -1,6 +1,8 @@
 package com.holub.life;
 
 import java.io.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import java.awt.*;
 import javax.swing.*;
@@ -27,7 +29,11 @@ import com.holub.life.Resident;
  */
 
 public class Universe extends JPanel
-{	private 		final Cell  	outermostCell;
+{	private final Neighborhood outermostCell;
+	private final Object generationLock = new Object();
+	private final Map<String, LifeRule> rules = new LinkedHashMap<>();
+	private LifeRule selectedRule = new ConwayRule();
+	private static final String RULE_MENU = "Rule";
 	private static	final Universe 	theInstance = new Universe();
 
 	/** The default height and width of a Neighborhood in cells.
@@ -57,7 +63,7 @@ public class Universe extends JPanel
 						(	DEFAULT_GRID_SIZE,
 							new Neighborhood
 							(	DEFAULT_GRID_SIZE,
-								new Resident()
+								new Resident(selectedRule)
 							)
 						);
 
@@ -139,20 +145,50 @@ public class Universe extends JPanel
 			}
 		);
 
-		Clock.instance().addClockListener //{=Universe.clock.subscribe}
-		(	new Clock.Listener()
-			{	public void tick()
-				{	if( outermostCell.figureNextState
-						   ( Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,
-							 Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY
-						   )
-					  )
-					{	if( outermostCell.transition() )
-							refreshNow();
-					}
-				}
+		rules.put("Conway", selectedRule);
+		rules.put("HighLife", new HighLifeRule());
+		rules.put("Seeds", new SeedsRule());
+		rules.forEach((name, rule) ->
+			MenuSite.addLine(this, RULE_MENU, name, event -> selectRule(rule)));
+		updateRuleMenu();
+
+		Clock.instance().addClockListener(this::advanceGeneration); //{=Universe.clock.subscribe}
+	}
+
+	private void selectRule(LifeRule rule)
+	{
+		synchronized( generationLock )
+		{
+			if( selectedRule == rule )
+				return;
+			outermostCell.changeRule(rule);
+			selectedRule = rule;
+		}
+		updateRuleMenu();
+	}
+
+	private void updateRuleMenu()
+	{
+		rules.forEach((name, rule) -> {
+			JMenuItem item = MenuSite.getMyMenuItem(this, RULE_MENU, name);
+			item.setText(rule == selectedRule ? "✓ " + name : name);
+		});
+	}
+
+	private void advanceGeneration()
+	{
+		synchronized( generationLock )
+		{
+			if( outermostCell.figureNextState
+				   ( Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,
+					 Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY
+				   )
+				  )
+			{
+				if( outermostCell.transition() )
+					refreshNow();
 			}
-		);
+		}
 	}
 
 	/** Singleton Accessor. The Universe object itself is manufactured
