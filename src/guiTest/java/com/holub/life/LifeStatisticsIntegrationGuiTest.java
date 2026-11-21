@@ -122,6 +122,30 @@ class LifeStatisticsIntegrationGuiTest {
     }
 
     @Test
+    @DisplayName("Switching to Seeds updates the board and the visible count on the next tick")
+    void updatesStatisticsAfterChangingRule() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            int deadColor = game.renderedCellColor(7, 7);
+            game.clickCell(7, 7);
+            game.clickCell(8, 7);
+            game.clickCell(7, 8);
+            game.clickCell(8, 8);
+            JMenuItem tick = GameWindow.menuItem(Clock.instance(), "Go", "Tick (Single Step)");
+
+            tick.doClick(0);
+            game.assertAliveCells(4);
+            GameWindow.menuItem(game.board, "Rule", "Seeds").doClick(0);
+            game.assertAliveCells(4);
+            assertNotEquals(deadColor, game.renderedCellColor(7, 7));
+
+            tick.doClick(0);
+            game.assertAliveCells(8);
+            assertEquals(deadColor, game.renderedCellColor(7, 7));
+            assertNotEquals(deadColor, game.renderedCellColor(8, 6));
+        });
+    }
+
+    @Test
     @DisplayName("The Clear menu resets the visible count to zero")
     void updatesStatisticsAfterClear() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
@@ -202,6 +226,7 @@ class LifeStatisticsIntegrationGuiTest {
         void reset() {
             Clock.instance().stop();
             MenuSelectionManager.defaultManager().clearSelectedPath();
+            menuItem(board, "Rule", "Conway").doClick(0);
             menuItem(board, "Grid", "Clear").doClick(0);
         }
 

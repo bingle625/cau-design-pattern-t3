@@ -1,6 +1,7 @@
 package com.holub.life;
 
 import java.awt.*;
+import java.util.Objects;
 import javax.swing.*;
 import com.holub.ui.Colors;	// Contains constants specifying various
 							// colors not defined in java.awt.Color.
@@ -25,6 +26,22 @@ public final class Resident implements Cell
 
 	private boolean amAlive 	= false;
 	private boolean willBeAlive	= false;
+	private LifeRule rule;
+
+	public Resident()
+	{
+		this(new ConwayRule());
+	}
+
+	public Resident(LifeRule rule)
+	{
+		setRule(rule);
+	}
+
+	void setRule(LifeRule rule)
+	{
+		this.rule = Objects.requireNonNull(rule);
+	}
 
 	private boolean isStable(){return amAlive == willBeAlive; }
 
@@ -58,7 +75,7 @@ public final class Resident implements Cell
 		if( southeast.isAlive()) ++neighbors;
 		if( southwest.isAlive()) ++neighbors;
 
-		willBeAlive = (neighbors==3 || (amAlive && neighbors==2));
+		willBeAlive = rule.nextAlive(amAlive, neighbors);
 		return !isStable();
 	}
 
@@ -78,7 +95,7 @@ public final class Resident implements Cell
 	}
 
 	public boolean transition()
-	{	boolean changed = isStable();
+	{	boolean changed = !isStable();
 		amAlive = willBeAlive;
 		return changed;
 	}
@@ -104,7 +121,7 @@ public final class Resident implements Cell
 
 	public void	   clear()			{amAlive = willBeAlive = false; }
 	public boolean isAlive()		{return amAlive;			    }
-	public Cell    create()			{return new Resident();			}
+	public Cell    create()			{return new Resident(rule);		}
 	public int 	   widthInCells()	{return 1;}
 
 	public int countAlive()
