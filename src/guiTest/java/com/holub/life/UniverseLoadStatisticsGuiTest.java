@@ -177,6 +177,62 @@ class UniverseLoadStatisticsGuiTest {
         });
     }
 
+    @Test
+    @DisplayName("A successful file Load clears the completed generation history")
+    void clearsHistoryAfterSuccessfulLoad() throws Exception {
+        Path saved = saveBoard("history.life", THREE_CELLS);
+        SwingUtilities.invokeAndWait(() -> {
+            clock.tick();
+            assertEquals(1, universe.generationHistorySize());
+
+            assertNull(load(saved));
+
+            assertEquals(0, universe.generationHistorySize());
+        });
+    }
+
+    @Test
+    @DisplayName("Canceling Load preserves completed generation history")
+    void keepsHistoryAfterCancelingLoad() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            clock.tick();
+            assertEquals(1, universe.generationHistorySize());
+
+            assertEquals("Read Failed!", load(null));
+
+            assertEquals(1, universe.generationHistorySize());
+        });
+    }
+
+    @Test
+    @DisplayName("A failed file Load preserves completed generation history")
+    void keepsHistoryAfterFailedLoad() throws Exception {
+        Path damaged = Files.createFile(tempDirectory.resolve("history-damaged.life"));
+        SwingUtilities.invokeAndWait(() -> {
+            clock.tick();
+            assertEquals(1, universe.generationHistorySize());
+
+            assertEquals("Read Failed!", load(damaged));
+
+            assertEquals(1, universe.generationHistorySize());
+        });
+    }
+
+    @Test
+    @DisplayName("Store still writes a file and preserves the completed generation history")
+    void keepsHistoryAfterStore() throws Exception {
+        Path saved = tempDirectory.resolve("history-store.life");
+        SwingUtilities.invokeAndWait(() -> {
+            clock.tick();
+            assertEquals(1, universe.generationHistorySize());
+
+            assertNull(new LoadDialogs(saved).run(gridMenuItem("Store")));
+
+            assertEquals(1, universe.generationHistorySize());
+        });
+        assertTrue(Files.exists(saved));
+    }
+
     private Path saveBoard(String name, Set<BoardCell> liveCells) throws IOException {
         Cell board = new Neighborhood(8, new Neighborhood(8, new Resident()));
         Rectangle surface = new Rectangle(0, 0, board.widthInCells(), board.widthInCells());

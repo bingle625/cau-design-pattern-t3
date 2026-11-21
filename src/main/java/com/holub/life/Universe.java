@@ -31,6 +31,7 @@ public class Universe extends JPanel
 {	private 		final Cell  	outermostCell;
 	private static	final Universe 	theInstance = new Universe();
 	private final Publisher statisticsPublisher = new Publisher();
+	private final CommandHistory history = new CommandHistory();
 
 	/** The default height and width of a Neighborhood in cells.
 	 *  If it's too big, you'll run too slowly because
@@ -99,9 +100,12 @@ public class Universe extends JPanel
 				{	Rectangle bounds = getBounds();
 					bounds.x = 0;
 					bounds.y = 0;
-					outermostCell.userClicked(e.getPoint(),bounds);
-					repaint();
-					publishStatistics();
+					synchronized( history )
+					{	outermostCell.userClicked(e.getPoint(),bounds);
+						history.clear();
+						repaint();
+						publishStatistics();
+					}
 				}
 			}
 		);
@@ -109,9 +113,12 @@ public class Universe extends JPanel
 		MenuSite.addLine( this, "Grid", "Clear",
 			new ActionListener()
 			{	public void actionPerformed(ActionEvent e)
-				{	outermostCell.clear();
-					repaint();
-					publishStatistics();
+				{	synchronized( history )
+					{	outermostCell.clear();
+						history.clear();
+						repaint();
+						publishStatistics();
+					}
 				}
 			}
 		);
@@ -146,9 +153,11 @@ public class Universe extends JPanel
 		Clock.instance().addClockListener //{=Universe.clock.subscribe}
 		(	new Clock.Listener()
 			{	public void tick()
-				{	Command command = new AdvanceGenerationCommand(outermostCell, Universe.this::refreshNow);
-					command.execute();
-					publishStatistics();
+				{	synchronized( history )
+					{	Command command = new AdvanceGenerationCommand(outermostCell, Universe.this::refreshNow);
+						history.execute(command);
+						publishStatistics();
+					}
 				}
 			}
 		);
@@ -171,9 +180,15 @@ public class Universe extends JPanel
 	}
 
 	void publishStatistics()
-	{	GameStatistics statistics = new GameStatistics(outermostCell.countAlive());
-		statisticsPublisher.publish(subscriber ->
-			((StatisticsListener) subscriber).statisticsChanged(statistics));
+	{	synchronized( history )
+		{	GameStatistics statistics = new GameStatistics(outermostCell.countAlive());
+			statisticsPublisher.publish(subscriber ->
+				((StatisticsListener) subscriber).statisticsChanged(statistics));
+		}
+	}
+
+	int generationHistorySize()
+	{	return history.size();
 	}
 
 	private void doLoad()
@@ -189,9 +204,12 @@ public class Universe extends JPanel
 				memento.load( in );
 			}
 
-			outermostCell.clear();
-			outermostCell.transfer( memento, new Point(0,0), Cell.LOAD );
-			loaded = true;
+			synchronized( history )
+			{	outermostCell.clear();
+				outermostCell.transfer( memento, new Point(0,0), Cell.LOAD );
+				history.clear();
+				loaded = true;
+			}
 		}
 		catch( IOException theException )
 		{	JOptionPane.showMessageDialog( null, "Read Failed!",
@@ -210,8 +228,11 @@ public class Universe extends JPanel
 
 			Clock.instance().stop();		// stop the game
 
-			Storable memento = outermostCell.createMemento();
-			outermostCell.transfer( memento, new Point(0,0), Cell.STORE );
+			Storable memento;
+			synchronized( history )
+			{	memento = outermostCell.createMemento();
+				outermostCell.transfer( memento, new Point(0,0), Cell.STORE );
+			}
 			memento.flush(out);
 
 			out.close();
@@ -237,7 +258,9 @@ public class Universe extends JPanel
 		// corner of the screen. Pretend that it's at (0,0)
 		panelBounds.x = 0;
 		panelBounds.y = 0;
-		outermostCell.redraw(g, panelBounds, true);		//{=Universe.redraw1}
+		synchronized( history )
+		{	outermostCell.redraw(g, panelBounds, true);	//{=Universe.redraw1}
+		}
 	}
 
 	/** Force a screen refresh by queing a request on
@@ -261,7 +284,9 @@ public class Universe extends JPanel
 						Rectangle panelBounds = getBounds();
 						panelBounds.x = 0;
 						panelBounds.y = 0;
-						outermostCell.redraw(g, panelBounds, false); //{=Universe.redraw2}
+						synchronized( history )
+						{	outermostCell.redraw(g, panelBounds, false); //{=Universe.redraw2}
+						}
 					}
 					finally
 					{	g.dispose();
