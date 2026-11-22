@@ -9,6 +9,7 @@ public final class CommandHistory {
     private static final int DEFAULT_CAPACITY = 10;
 
     private final Deque<Command> completed = new ArrayDeque<>();
+    private final Deque<Command> undone = new ArrayDeque<>();
     private final int capacity;
 
     public CommandHistory() {
@@ -24,6 +25,7 @@ public final class CommandHistory {
 
     public synchronized void execute(Command command) {
         Objects.requireNonNull(command, "command").execute();
+        undone.clear();
         completed.addLast(command);
         if (completed.size() > capacity) {
             completed.removeFirst();
@@ -34,7 +36,19 @@ public final class CommandHistory {
         return completed.size();
     }
 
+    public synchronized boolean undo() {
+        Command command = completed.peekLast();
+        if (command == null) {
+            return false;
+        }
+        command.undo();
+        completed.removeLast();
+        undone.addLast(command);
+        return true;
+    }
+
     public synchronized void clear() {
         completed.clear();
+        undone.clear();
     }
 }
