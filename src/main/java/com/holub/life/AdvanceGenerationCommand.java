@@ -32,4 +32,12 @@ public final class AdvanceGenerationCommand implements Command {
         before = initialState;
         after = completedState;
     }
+
+    @Override
+    public void undo() {
+        if (before == null) {
+            throw new IllegalStateException("The generation has not completed yet");
+        }
+        before.restoreTo(board);
+    }
 }
