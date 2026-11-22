@@ -128,6 +128,33 @@ class AdvanceGenerationCommandTest {
     }
 
     @Test
+    @DisplayName("Undo restores the board before execution without requesting a UI refresh")
+    void undoRestoresPreviousBoard() {
+        Cell board = newBoard(new Point(3, 4));
+        AtomicInteger refreshes = new AtomicInteger();
+        Command command = new AdvanceGenerationCommand(board, refreshes::incrementAndGet);
+        command.execute();
+        assertLiveCells(board);
+        int requestsAfterExecution = refreshes.get();
+
+        command.undo();
+
+        assertLiveCells(board, new Point(3, 4));
+        assertEquals(requestsAfterExecution, refreshes.get(), "The UI entry point refreshes after Undo");
+    }
+
+    @Test
+    @DisplayName("Undo before a completed execution is rejected without modifying the board")
+    void rejectsUndoBeforeExecution() {
+        Cell board = newBoard(new Point(3, 4));
+        Command command = new AdvanceGenerationCommand(board, () -> { });
+
+        assertThrows(IllegalStateException.class, command::undo);
+
+        assertLiveCells(board, new Point(3, 4));
+    }
+
+    @Test
     @DisplayName("Capturing generation states preserves the legacy board evolution across block boundaries")
     void matchesLegacyEvolution() {
         Point[][] patterns = {
