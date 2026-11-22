@@ -183,15 +183,8 @@ public class Universe extends JPanel
 	{
 		synchronized( generationLock )
 		{
-			if( outermostCell.figureNextState
-				   ( Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,
-					 Cell.DUMMY,Cell.DUMMY,Cell.DUMMY,Cell.DUMMY
-				   )
-				  )
-			{
-				if( outermostCell.transition() )
-					refreshNow();
-			}
+			Command command = new AdvanceGenerationCommand(outermostCell, Universe.this::refreshNow);
+			command.execute();
 		}
 		publishStatistics();
 	}

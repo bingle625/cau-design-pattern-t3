@@ -3,6 +3,8 @@ package com.holub.life;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Graphics2D;
 import java.awt.event.MouseEvent;
@@ -10,11 +12,13 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFrame;
 import javax.swing.JMenuItem;
+import javax.swing.MenuElement;
 import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
 
@@ -134,6 +138,34 @@ class UniverseTickStatisticsGuiTest {
     }
 
     @Test
+    @DisplayName("An active menu suppresses board advancement and statistics until selection is cleared")
+    void skipsTickWhileMenuIsActive() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            clickCell(3, 4);
+            int liveColor = renderedCellColor(3, 4);
+            List<GameStatistics> received = new ArrayList<>();
+            register(received::add);
+            MenuSelectionManager menus = MenuSelectionManager.defaultManager();
+            try {
+                menus.setSelectedPath(new MenuElement[] {
+                        frame.getJMenuBar(), frame.getJMenuBar().getMenu(0) });
+
+                clock.tick();
+
+                assertEquals(liveColor, renderedCellColor(3, 4), "The selected menu must prevent advancement");
+                assertEquals(0, received.size(), "A suppressed tick must not publish statistics");
+            } finally {
+                menus.clearSelectedPath();
+            }
+
+            clock.tick();
+
+            assertEquals(1, received.size(), "The next permitted tick must publish once");
+            assertEquals(0, received.get(0).getAliveCells(), "The isolated cell dies after selection is cleared");
+        });
+    }
+
+    @Test
     @DisplayName("The manual menu and automatic timer both publish statistics")
     void publishesForManualMenuAndAutomaticTimer() throws Exception {
         BlockingQueue<Boolean> callbacksOnEdt = new LinkedBlockingQueue<>();
@@ -150,6 +182,40 @@ class UniverseTickStatisticsGuiTest {
         SwingUtilities.invokeAndWait(() -> clock.startTicking(AUTO_TICK_INTERVAL_MS));
         assertEquals(Boolean.FALSE, callbacksOnEdt.poll(5, TimeUnit.SECONDS),
                 "Automatic tick must notify off the EDT within five seconds");
+    }
+
+    @Test
+    @DisplayName("The Halt menu cancels further automatic ticks after the current tick finishes")
+    void haltStopsFurtherAutomaticTicks() throws Exception {
+        BlockingQueue<GameStatistics> received = new LinkedBlockingQueue<>();
+        CountDownLatch firstTickStarted = new CountDownLatch(1);
+        CountDownLatch finishFirstTick = new CountDownLatch(1);
+        SwingUtilities.invokeAndWait(() -> {
+            register(statistics -> {
+                received.add(statistics);
+                firstTickStarted.countDown();
+                try {
+                    assertTrue(finishFirstTick.await(5, TimeUnit.SECONDS), "The test must release the current tick");
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(exception);
+                }
+            });
+            clock.startTicking(50);
+        });
+        try {
+            assertTrue(firstTickStarted.await(5, TimeUnit.SECONDS), "The automatic timer must start");
+            SwingUtilities.invokeAndWait(() -> {
+                JMenuItem halt = MenuSite.getMyMenuItem(clock, "Go", "Halt");
+                assertNotNull(halt, "Go > Halt menu item");
+                halt.doClick(0);
+            });
+        } finally {
+            finishFirstTick.countDown();
+        }
+
+        assertNotNull(received.poll(5, TimeUnit.SECONDS), "The current tick must publish once");
+        assertNull(received.poll(250, TimeUnit.MILLISECONDS), "Halt must cancel subsequent timer ticks");
     }
 
     private void register(StatisticsListener observer) {
