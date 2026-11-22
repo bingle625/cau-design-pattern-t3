@@ -1,6 +1,8 @@
 package com.holub.life;
 
 import java.io.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import java.awt.*;
 import javax.swing.*;
@@ -28,7 +30,10 @@ import com.holub.life.Resident;
  */
 
 public class Universe extends JPanel
-{	private 		final Cell  	outermostCell;
+{	private final Neighborhood outermostCell;
+	private final Map<String, LifeRule> rules = new LinkedHashMap<>();
+	private LifeRule selectedRule = new ConwayRule();
+	private static final String RULE_MENU = "Rule";
 	private static	final Universe 	theInstance = new Universe();
 	private final Publisher statisticsPublisher = new Publisher();
 	private final CommandHistory history = new CommandHistory();
@@ -60,7 +65,7 @@ public class Universe extends JPanel
 						(	DEFAULT_GRID_SIZE,
 							new Neighborhood
 							(	DEFAULT_GRID_SIZE,
-								new Resident()
+								new Resident(selectedRule)
 							)
 						);
 
@@ -150,17 +155,44 @@ public class Universe extends JPanel
 			}
 		);
 
-		Clock.instance().addClockListener //{=Universe.clock.subscribe}
-		(	new Clock.Listener()
-			{	public void tick()
-				{	synchronized( history )
-					{	Command command = new AdvanceGenerationCommand(outermostCell, Universe.this::refreshNow);
-						history.execute(command);
-						publishStatistics();
-					}
-				}
-			}
-		);
+		Clock.instance().addClockListener(this::advanceGeneration); //{=Universe.clock.subscribe}
+
+		rules.put("Conway", selectedRule);
+		rules.put("HighLife", new HighLifeRule());
+		rules.put("Seeds", new SeedsRule());
+		rules.forEach((name, rule) ->
+			MenuSite.addLine(this, RULE_MENU, name, event -> selectRule(rule)));
+		updateRuleMenu();
+	}
+
+	private void selectRule(LifeRule rule)
+	{
+		synchronized( history )
+		{
+			if( selectedRule == rule )
+				return;
+			outermostCell.changeRule(rule);
+			selectedRule = rule;
+		}
+		updateRuleMenu();
+	}
+
+	private void updateRuleMenu()
+	{
+		rules.forEach((name, rule) -> {
+			JMenuItem item = MenuSite.getMyMenuItem(this, RULE_MENU, name);
+			item.setText(rule == selectedRule ? "✓ " + name : name);
+		});
+	}
+
+	private void advanceGeneration()
+	{
+		synchronized( history )
+		{
+			Command command = new AdvanceGenerationCommand(outermostCell, Universe.this::refreshNow);
+			history.execute(command);
+			publishStatistics();
+		}
 	}
 
 	/** Singleton Accessor. The Universe object itself is manufactured

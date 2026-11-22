@@ -83,6 +83,21 @@ public final class Neighborhood implements Cell
 	{	return new Neighborhood(gridSize, grid[0][0]);
 	}
 
+	/** Apply a rule between generations and wake any stable sub-neighborhoods. */
+	void changeRule(LifeRule rule)
+	{
+		Objects.requireNonNull(rule);
+		amActive = true;
+		for( Cell[] row : grid )
+			for( Cell cell : row )
+			{
+				if( cell instanceof Neighborhood neighborhood )
+					neighborhood.changeRule(rule);
+				else if( cell instanceof Resident resident )
+					resident.setRule(rule);
+			}
+	}
+
 	/** Became stable on the last clock tick. One more refresh is
 	 *  required.
 	 */
@@ -474,6 +489,9 @@ public final class Neighborhood implements Cell
 			}
 			upperLeft.translate(-myWidth, subcellWidth );
 		}
+		// Loaded cells can cause births in adjacent, initially empty regions.
+		if( load )
+			amActive = true;
 		return amActive;
 	}
 
