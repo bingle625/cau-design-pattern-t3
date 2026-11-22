@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,7 +92,7 @@ class AdvanceGenerationCommandTest {
 
     @Test
     @DisplayName("Each command keeps its execution-time before and after states when later commands run")
-    void retainsIndependentExecutionStates() throws Exception {
+    void retainsIndependentExecutionStates() {
         Cell board = newBoard(new Point(3, 4), new Point(4, 4));
         AdvanceGenerationCommand first = new AdvanceGenerationCommand(board, () -> { });
         click(board, new Point(5, 4));
@@ -103,15 +102,14 @@ class AdvanceGenerationCommandTest {
         second.execute();
         board.clear();
 
-        Cell restored = newBoard();
-        snapshot(first, "before").restoreTo(restored);
-        assertLiveCells(restored, new Point(3, 4), new Point(4, 4), new Point(5, 4));
-        snapshot(first, "after").restoreTo(restored);
-        assertLiveCells(restored, new Point(4, 3), new Point(4, 4), new Point(4, 5));
-        snapshot(second, "before").restoreTo(restored);
-        assertLiveCells(restored, new Point(4, 3), new Point(4, 4), new Point(4, 5));
-        snapshot(second, "after").restoreTo(restored);
-        assertLiveCells(restored, new Point(3, 4), new Point(4, 4), new Point(5, 4));
+        first.undo();
+        assertLiveCells(board, new Point(3, 4), new Point(4, 4), new Point(5, 4));
+        first.redo();
+        assertLiveCells(board, new Point(4, 3), new Point(4, 4), new Point(4, 5));
+        second.undo();
+        assertLiveCells(board, new Point(4, 3), new Point(4, 4), new Point(4, 5));
+        second.redo();
+        assertLiveCells(board, new Point(3, 4), new Point(4, 4), new Point(5, 4));
     }
 
     @Test
@@ -152,6 +150,56 @@ class AdvanceGenerationCommandTest {
         assertThrows(IllegalStateException.class, command::undo);
 
         assertLiveCells(board, new Point(3, 4));
+    }
+
+    @Test
+    @DisplayName("Redo restores the completed state without recalculation or a duplicate refresh request")
+    void redoRestoresCompletedStateWithoutRecalculation() {
+        Cell board = newBoard(new Point(3, 4), new Point(4, 4), new Point(5, 4));
+        AtomicInteger calculations = new AtomicInteger();
+        Cell counted = (Cell) Proxy.newProxyInstance(Cell.class.getClassLoader(), new Class<?>[] { Cell.class },
+                (proxy, method, arguments) -> {
+                    if (method.getName().equals("figureNextState")) {
+                        calculations.incrementAndGet();
+                    }
+                    return method.invoke(board, arguments);
+                });
+        AtomicInteger refreshes = new AtomicInteger();
+        Command command = new AdvanceGenerationCommand(counted, refreshes::incrementAndGet);
+        command.execute();
+        int requestsAfterExecution = refreshes.get();
+        command.undo();
+        assertLiveCells(board, new Point(3, 4), new Point(4, 4), new Point(5, 4));
+
+        command.redo();
+
+        assertLiveCells(board, new Point(4, 3), new Point(4, 4), new Point(4, 5));
+        assertEquals(1, calculations.get(), "Redo must not calculate the generation again");
+        assertEquals(requestsAfterExecution, refreshes.get(), "The UI entry point refreshes after Redo");
+    }
+
+    @Test
+    @DisplayName("Redo before a completed execution is rejected without modifying the board")
+    void rejectsRedoBeforeExecution() {
+        Cell board = newBoard(new Point(3, 4));
+        Command command = new AdvanceGenerationCommand(board, () -> { });
+
+        assertThrows(IllegalStateException.class, command::redo);
+
+        assertLiveCells(board, new Point(3, 4));
+    }
+
+    @Test
+    @DisplayName("An unchanged generation can be undone and redone using its empty snapshots")
+    void redoesUnchangedGeneration() {
+        Cell board = newBoard();
+        Command command = new AdvanceGenerationCommand(board, () -> { });
+        command.execute();
+        command.undo();
+
+        command.redo();
+
+        assertLiveCells(board);
     }
 
     @Test
@@ -198,13 +246,6 @@ class AdvanceGenerationCommandTest {
         int width = board.widthInCells() * 8;
         board.userClicked(new Point(position.x * 8 + 1, position.y * 8 + 1),
                 new Rectangle(0, 0, width, width));
-    }
-
-    // Inspect preparation state until the public Undo/Redo operations are added in the next units.
-    private static BoardSnapshot snapshot(AdvanceGenerationCommand command, String name) throws Exception {
-        Field field = AdvanceGenerationCommand.class.getDeclaredField(name);
-        field.setAccessible(true);
-        return (BoardSnapshot) field.get(command);
     }
 
     private static void assertLiveCells(Cell board, Point... expected) {

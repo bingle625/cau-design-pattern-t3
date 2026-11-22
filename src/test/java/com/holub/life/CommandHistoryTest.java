@@ -209,6 +209,191 @@ class CommandHistoryTest {
         assertSameBoard(expected, board);
     }
 
+    @Test
+    @DisplayName("Redo reapplies undone commands in their original execution order")
+    void redoesInOriginalOrder() {
+        CommandHistory history = new CommandHistory();
+        List<String> events = new ArrayList<>();
+        history.execute(command(() -> { }, () -> { }, () -> events.add("first")));
+        history.execute(command(() -> { }, () -> { }, () -> events.add("second")));
+        history.execute(command(() -> { }, () -> { }, () -> events.add("third")));
+        assertTrue(history.undo());
+        assertTrue(history.undo());
+
+        assertTrue(history.redo());
+        assertTrue(history.redo());
+
+        assertEquals(List.of("second", "third"), events);
+        assertEquals(3, history.size());
+        assertFalse(history.redo());
+    }
+
+    @Test
+    @DisplayName("Redo without an undone command leaves the completed history unchanged")
+    void ignoresEmptyRedo() {
+        CommandHistory history = new CommandHistory();
+        assertFalse(history.redo());
+        history.execute(command(() -> { }));
+
+        assertFalse(history.redo());
+
+        assertEquals(1, history.size());
+    }
+
+    @Test
+    @DisplayName("A failed Redo retains the undone command and allows retry without adding a completed record")
+    void retainsCommandWhenRedoFails() {
+        CommandHistory history = new CommandHistory();
+        AtomicInteger attempts = new AtomicInteger();
+        history.execute(command(() -> { }, () -> { }, () -> {
+            if (attempts.incrementAndGet() == 1) {
+                throw new IllegalStateException("Restore failed");
+            }
+        }));
+        assertTrue(history.undo());
+
+        assertThrows(IllegalStateException.class, history::redo);
+        assertEquals(0, history.size());
+        assertTrue(history.redo());
+
+        assertEquals(2, attempts.get());
+        assertEquals(1, history.size());
+        assertFalse(history.redo());
+    }
+
+    @Test
+    @DisplayName("A successful new execution after Undo invalidates the old Redo branch")
+    void invalidatesRedoAfterNewExecution() {
+        CommandHistory history = new CommandHistory();
+        List<String> redone = new ArrayList<>();
+        history.execute(command(() -> { }, () -> { }, () -> redone.add("old")));
+        assertTrue(history.undo());
+
+        history.execute(command(() -> { }, () -> { }, () -> redone.add("new")));
+
+        assertFalse(history.redo());
+        assertEquals(1, history.size());
+        assertEquals(List.of(), redone);
+        assertTrue(history.undo());
+        assertTrue(history.redo());
+        assertEquals(List.of("new"), redone);
+    }
+
+    @Test
+    @DisplayName("A failed new execution preserves the existing Redo branch")
+    void preservesRedoOnExecutionFailure() {
+        CommandHistory history = new CommandHistory();
+        AtomicInteger redone = new AtomicInteger();
+        history.execute(command(() -> { }, () -> { }, redone::incrementAndGet));
+        assertTrue(history.undo());
+
+        assertThrows(IllegalStateException.class, () -> history.execute(command(() -> {
+            throw new IllegalStateException("Execution failed");
+        })));
+
+        assertTrue(history.redo());
+        assertEquals(1, redone.get());
+        assertEquals(1, history.size());
+    }
+
+    @Test
+    @DisplayName("Clear discards undone commands as well as completed commands")
+    void clearsRedoHistory() {
+        CommandHistory history = new CommandHistory();
+        history.execute(command(() -> { }));
+        assertTrue(history.undo());
+
+        history.clear();
+
+        assertFalse(history.redo());
+        assertFalse(history.undo());
+        assertEquals(0, history.size());
+    }
+
+    @Test
+    @DisplayName("Repeated Undo and Redo cycles do not duplicate or lose the recorded command")
+    void alternatesUndoAndRedo() {
+        CommandHistory history = new CommandHistory();
+        AtomicInteger value = new AtomicInteger();
+        history.execute(command(() -> value.set(1), () -> value.set(0), () -> value.set(1)));
+
+        for (int cycle = 0; cycle < 20; cycle++) {
+            assertTrue(history.undo());
+            assertEquals(0, value.get());
+            assertEquals(0, history.size());
+            assertTrue(history.redo());
+            assertEquals(1, value.get());
+            assertEquals(1, history.size());
+            assertFalse(history.redo());
+        }
+    }
+
+    @Test
+    @DisplayName("Redo restores only the ten retained commands and never resurrects an evicted generation")
+    void redoesOnlyRetainedCommands() {
+        CommandHistory history = new CommandHistory();
+        List<Integer> redone = new ArrayList<>();
+        for (int generation = 1; generation <= 11; generation++) {
+            int recorded = generation;
+            history.execute(command(() -> { }, () -> { }, () -> redone.add(recorded)));
+        }
+        for (int count = 0; count < 10; count++) {
+            assertTrue(history.undo());
+        }
+
+        for (int count = 1; count <= 10; count++) {
+            assertTrue(history.redo());
+            assertEquals(count, history.size());
+        }
+
+        assertEquals(List.of(2, 3, 4, 5, 6, 7, 8, 9, 10, 11), redone);
+        assertFalse(history.redo());
+    }
+
+    @Test
+    @DisplayName("Redo of real generations restores every saved coordinate and allows the next generation")
+    void redoesRealGenerationStates() {
+        Cell board = new Neighborhood(8, new Neighborhood(8, new Resident()));
+        for (Point position : new Point[] { new Point(7, 6), new Point(8, 7), new Point(6, 8),
+                new Point(7, 8), new Point(8, 8) }) {
+            board.userClicked(new Point(position.x * 8 + 1, position.y * 8 + 1),
+                    new Rectangle(0, 0, 512, 512));
+        }
+        CommandHistory history = new CommandHistory();
+        List<BoardSnapshot> states = new ArrayList<>();
+        for (int generation = 0; generation < 3; generation++) {
+            history.execute(new AdvanceGenerationCommand(board, () -> { }));
+            states.add(BoardSnapshot.capture(board));
+        }
+        for (int count = 0; count < 3; count++) {
+            assertTrue(history.undo());
+        }
+        Cell expected = new Neighborhood(8, new Neighborhood(8, new Resident()));
+
+        for (BoardSnapshot state : states) {
+            assertTrue(history.redo());
+            state.restoreTo(expected);
+            assertSameBoard(expected, board);
+        }
+        history.execute(new AdvanceGenerationCommand(board, () -> { }));
+        new AdvanceGenerationCommand(expected, () -> { }).execute();
+        assertSameBoard(expected, board);
+    }
+
+    @Test
+    @DisplayName("A failed Undo does not produce a command available for Redo")
+    void keepsFailedUndoOutOfRedo() {
+        CommandHistory history = new CommandHistory();
+        history.execute(command(() -> { }, () -> {
+            throw new IllegalStateException("Restore failed");
+        }));
+
+        assertThrows(IllegalStateException.class, history::undo);
+
+        assertFalse(history.redo());
+        assertEquals(1, history.size());
+    }
+
     private static void assertSameBoard(Cell expected, Cell actual) {
         assertEquals(expected.countAlive(), actual.countAlive());
         Cell.Memento first = (Cell.Memento) expected.createMemento();
@@ -226,6 +411,10 @@ class CommandHistoryTest {
     }
 
     private static Command command(Runnable execute, Runnable undo) {
+        return command(execute, undo, () -> { });
+    }
+
+    private static Command command(Runnable execute, Runnable undo, Runnable redo) {
         return new Command() {
             @Override
             public void execute() {
@@ -235,6 +424,11 @@ class CommandHistoryTest {
             @Override
             public void undo() {
                 undo.run();
+            }
+
+            @Override
+            public void redo() {
+                redo.run();
             }
         };
     }
