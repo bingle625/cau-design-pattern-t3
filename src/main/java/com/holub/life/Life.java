@@ -35,6 +35,11 @@ public final class Life extends JFrame
 		getContentPane().setLayout	( new BorderLayout()	);
 		universe = Universe.instance();
 		getContentPane().add( universe, BorderLayout.CENTER); //{=life.java.install}
+		JPanel controls = new JPanel();
+		JButton undo = new JButton("Undo");
+		undo.addActionListener(event -> universe.undo());
+		controls.add(undo);
+		getContentPane().add( controls, BorderLayout.NORTH );
 		statisticsPanel = new StatisticsPanel();
 		getContentPane().add( statisticsPanel, BorderLayout.SOUTH );
 		universe.addStatisticsListener(statisticsPanel);
