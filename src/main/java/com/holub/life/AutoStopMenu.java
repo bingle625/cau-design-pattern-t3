@@ -10,14 +10,7 @@ import javax.swing.SwingUtilities;
 
 import com.holub.ui.MenuSite;
 
-/**
- * The "Auto Stop" menu. It lets the user pick a {@link StopCondition} and
- * connects an {@link AutoStopController} to the clock and the universe.
- *
- * <p>Neither the clock nor the universe is modified. The controller only
- * subscribes to notifications that both already publish, and stops the
- * clock through its existing {@link Clock#stop()} method.
- */
+/** The "Auto Stop" menu: lets the user choose a {@link StopCondition}. */
 public final class AutoStopMenu {
     static final String MENU = "Auto Stop";
     static final String AFTER_GENERATIONS = "After N Generations...";
@@ -25,7 +18,7 @@ public final class AutoStopMenu {
     static final String AT_POPULATION = "At Population...";
     static final String OFF = "Off";
 
-    /** Interval used when "After N Generations..." starts the run (the Go menu's Medium). */
+    /** Same interval as Go > Medium. */
     static final int RUN_INTERVAL_MS = 70;
 
     private static final String CHECK = "✓ ";
@@ -36,17 +29,10 @@ public final class AutoStopMenu {
     private final Component dialogParent;
     private final AutoStopController controller;
 
-    // Which menu item set the condition that is being watched. Touched on the EDT only.
     private StopCondition chosenCondition;
     private String chosenItem;
 
-    /**
-     * Adds the menu and starts observing. Call this after the universe has
-     * been created: the controller must subscribe to the clock later than
-     * the universe does, because the clock notifies its newest subscriber
-     * first and the controller has to hear a tick before the universe
-     * applies it.
-     */
+    /** Call after the Universe exists: the clock notifies its newest subscriber first. */
     public static AutoStopMenu install(Clock clock, Universe universe) {
         AutoStopMenu menu = new AutoStopMenu(clock, universe);
         clock.addClockListener(menu.controller);
@@ -67,23 +53,19 @@ public final class AutoStopMenu {
         updateMenu();
     }
 
-    /** Runs the given number of generations from now, then stops. */
     void runGenerations(int count) {
         choose(AFTER_GENERATIONS, new GenerationLimitCondition(count));
         clock.startTicking(RUN_INTERVAL_MS);
     }
 
-    /** Stops the next time the board is empty after a generation. Does not start the clock. */
     void stopWhenExtinct() {
         choose(WHEN_EXTINCT, new ExtinctionCondition());
     }
 
-    /** Stops once at least this many cells are alive after a generation. Does not start the clock. */
     void stopAtPopulation(int threshold) {
         choose(AT_POPULATION, new PopulationThresholdCondition(threshold));
     }
 
-    /** Removes the condition. The clock keeps doing whatever it was doing. */
     void turnOff() {
         controller.disarm();
         updateMenu();
@@ -96,7 +78,7 @@ public final class AutoStopMenu {
         updateMenu();
     }
 
-    /** Called by the controller, possibly on the timer thread. */
+    // May run on the timer thread.
     private void conditionMet() {
         clock.stop();
         SwingUtilities.invokeLater(this::updateMenu);
@@ -116,7 +98,6 @@ public final class AutoStopMenu {
         }
     }
 
-    /** @return the number entered, or null if the user cancelled or the input was not a positive integer */
     private Integer askForPositiveNumber(String message, String title) {
         String input = JOptionPane.showInputDialog(dialogParent, message, title, JOptionPane.QUESTION_MESSAGE);
         if (input == null) {
@@ -130,7 +111,7 @@ public final class AutoStopMenu {
         return number;
     }
 
-    /** @return the positive integer in the text, or null if it is not one */
+    /** @return null unless the text is a whole number of 1 or more */
     static Integer parsePositiveNumber(String text) {
         try {
             int number = Integer.parseInt(text.trim());
@@ -140,7 +121,6 @@ public final class AutoStopMenu {
         }
     }
 
-    /** Puts a check mark on the item whose condition is still being watched. */
     private void updateMenu() {
         StopCondition armed = controller.armedCondition();
         String checkedItem = (armed != null && armed == chosenCondition) ? chosenItem : null;

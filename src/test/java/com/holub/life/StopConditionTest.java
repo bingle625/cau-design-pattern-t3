@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Each stop condition is checked on its own, without a board, a clock, or any UI. */
 class StopConditionTest {
 
     private static final int ANY_ALIVE = 7;

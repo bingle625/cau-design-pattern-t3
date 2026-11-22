@@ -27,11 +27,6 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.holub.ui.MenuSite;
 
-/**
- * E4 auto-stop checked against the real clock, universe and menus.
- * Generations are counted through the statistics notification that the
- * universe publishes at the end of every tick.
- */
 @Execution(ExecutionMode.SAME_THREAD)
 class AutoStopGuiTest {
 

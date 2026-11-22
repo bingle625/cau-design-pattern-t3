@@ -2,39 +2,24 @@ package com.holub.life;
 
 import java.util.Objects;
 
-/**
- * Watches generations go by and asks the current {@link StopCondition}
- * whether the run should stop.
- *
- * <p>It observes two existing subjects and modifies neither. A clock tick
- * marks the start of a generation. The statistics notification that the
- * {@link Universe} publishes at the end of that tick marks its completion
- * and carries the live-cell count. Statistics published for other reasons
- * (a cell click, Clear, Load) are not preceded by a tick on the same thread
- * and are therefore not counted as generations.
- *
- * <p>The controller does not know the clock. It runs the stop action it was
- * given, so it can be tested without a clock or any UI.
- */
+/** Counts generations and stops the game when the current {@link StopCondition} is met. */
 public final class AutoStopController implements Clock.Listener, StatisticsListener {
     private final Runnable stopAction;
     private StopCondition condition;
     private int generationsRun;
     private Thread tickingThread;
 
-    /** @param stopAction what to do when the condition is met, for example stopping the clock */
     public AutoStopController(Runnable stopAction) {
         this.stopAction = Objects.requireNonNull(stopAction, "stopAction");
     }
 
-    /** Sets the condition to watch and starts counting generations from zero. */
+    /** Starts counting generations from zero for the new condition. */
     public synchronized void arm(StopCondition newCondition) {
         condition = Objects.requireNonNull(newCondition, "newCondition");
         generationsRun = 0;
         tickingThread = null;
     }
 
-    /** Removes the condition. The game then runs until the user halts it. */
     public synchronized void disarm() {
         condition = null;
         tickingThread = null;
@@ -45,7 +30,6 @@ public final class AutoStopController implements Clock.Listener, StatisticsListe
         return condition;
     }
 
-    /** A generation is starting on the calling thread. */
     @Override
     public synchronized void tick() {
         if (condition != null) {
@@ -53,10 +37,10 @@ public final class AutoStopController implements Clock.Listener, StatisticsListe
         }
     }
 
-    /** A generation has been applied if a tick started on this same thread. */
     @Override
     public void statisticsChanged(GameStatistics statistics) {
         synchronized (this) {
+            // Statistics from a click, Clear or Load arrive without a tick on this thread.
             if (condition == null || tickingThread != Thread.currentThread()) {
                 return;
             }
@@ -67,7 +51,7 @@ public final class AutoStopController implements Clock.Listener, StatisticsListe
             }
             condition = null;
         }
-        // Run outside the lock so that the action may call back into this controller.
+        // Outside the lock: the action may call back into this controller.
         stopAction.run();
     }
 }

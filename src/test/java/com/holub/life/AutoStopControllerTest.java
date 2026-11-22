@@ -13,11 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/**
- * The controller is driven the way the game drives it (a tick, then a
- * statistics notification) but with a counting stop action instead of a
- * real clock, so no UI is needed.
- */
+/** Uses a counting stop action instead of a real clock, so no UI is needed. */
 class AutoStopControllerTest {
 
     private static final int ANY_ALIVE = 5;

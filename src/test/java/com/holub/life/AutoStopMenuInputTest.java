@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** What the user types into the Auto Stop dialogs is checked without opening a dialog. */
 class AutoStopMenuInputTest {
 
     @Test

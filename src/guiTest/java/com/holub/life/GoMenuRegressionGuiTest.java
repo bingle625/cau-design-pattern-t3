@@ -26,10 +26,7 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 
 import com.holub.ui.MenuSite;
 
-/**
- * Regression tests for the original Go menu (Halt, Tick, and the four speeds).
- * They pin down the behavior that the E4 auto-stop feature must not change.
- */
+/** Pins down the original Go menu behavior that E4 must not change. */
 @Execution(ExecutionMode.SAME_THREAD)
 class GoMenuRegressionGuiTest {
 
