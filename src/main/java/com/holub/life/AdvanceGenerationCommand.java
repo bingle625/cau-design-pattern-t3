@@ -40,4 +40,12 @@ public final class AdvanceGenerationCommand implements Command {
         }
         before.restoreTo(board);
     }
+
+    @Override
+    public void redo() {
+        if (after == null) {
+            throw new IllegalStateException("The generation has not completed yet");
+        }
+        after.restoreTo(board);
+    }
 }
