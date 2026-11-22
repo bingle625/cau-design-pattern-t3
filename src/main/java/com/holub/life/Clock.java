@@ -29,6 +29,7 @@ import com.holub.tools.Publisher;
 public class Clock
 {	private Timer			clock		= new Timer();
 	private TimerTask		tick		= null;
+	private Thread			tickingThread = null;
 
 	// The clock can't be an everything-is-static singleton because
 	// it creates a menu, and it can't do that until the menus
@@ -56,7 +57,7 @@ public class Clock
 	 *  					 the clock should be stopped.
 	 */
 
-	public void startTicking( int millisecondsBetweenTicks )
+	public synchronized void startTicking( int millisecondsBetweenTicks )
 	{	if(tick != null)
 		{	tick.cancel();
 			tick=null;
@@ -64,7 +65,22 @@ public class Clock
 
 		if( millisecondsBetweenTicks > 0 )
 		{	tick =	new TimerTask()
-					{	public void run(){ tick(); }
+					{	public void run()
+						{	synchronized( Clock.this )
+							{	if( tick != this )
+									return;
+								tickingThread = Thread.currentThread();
+							}
+							try
+							{	Clock.this.tick();
+							}
+							finally
+							{	synchronized( Clock.this )
+								{	tickingThread = null;
+									Clock.this.notifyAll();
+								}
+							}
+						}
 					};
 			clock.scheduleAtFixedRate( tick, 0, millisecondsBetweenTicks);
 		}
@@ -75,6 +91,26 @@ public class Clock
 
 	public void stop()
 	{	startTicking( 0 );
+	}
+
+	/** Stop and wait for a started automatic tick before restoring a board.
+	 *  Call outside clock listeners and before acquiring the board's lock.
+	 */
+	public synchronized void stopAndWait()
+	{	stop();
+		if( Thread.currentThread() == tickingThread )
+			throw new IllegalStateException("Cannot wait for the current clock listener");
+		boolean interrupted = false;
+		while( tickingThread != null )
+		{	try
+			{	wait();
+			}
+			catch( InterruptedException e )
+			{	interrupted = true;
+			}
+		}
+		if( interrupted )
+			Thread.currentThread().interrupt();
 	}
 
 	/** Create the menu that controls the clock speed and
