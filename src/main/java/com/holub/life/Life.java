@@ -39,6 +39,9 @@ public final class Life extends JFrame
 		JButton undo = new JButton("Undo");
 		undo.addActionListener(event -> universe.undo());
 		controls.add(undo);
+		JButton redo = new JButton("Redo");
+		redo.addActionListener(event -> universe.redo());
+		controls.add(redo);
 		getContentPane().add( controls, BorderLayout.NORTH );
 		statisticsPanel = new StatisticsPanel();
 		getContentPane().add( statisticsPanel, BorderLayout.SOUTH );

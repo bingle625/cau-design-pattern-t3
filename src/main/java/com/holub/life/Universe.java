@@ -191,11 +191,22 @@ public class Universe extends JPanel
 	{	return history.size();
 	}
 
-	/** Undo one completed generation. Called from the Swing UI thread. */
+
 	public boolean undo()
 	{	Clock.instance().stopAndWait();
 		synchronized( history )
 		{	if( !history.undo() )
+				return false;
+			repaint();
+			publishStatistics();
+			return true;
+		}
+	}
+
+	public boolean redo()
+	{	Clock.instance().stopAndWait();
+		synchronized( history )
+		{	if( !history.redo() )
 				return false;
 			repaint();
 			publishStatistics();
