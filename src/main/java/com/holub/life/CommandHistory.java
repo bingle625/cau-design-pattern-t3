@@ -47,6 +47,17 @@ public final class CommandHistory {
         return true;
     }
 
+    public synchronized boolean redo() {
+        Command command = undone.peekLast();
+        if (command == null) {
+            return false;
+        }
+        command.redo();
+        undone.removeLast();
+        completed.addLast(command);
+        return true;
+    }
+
     public synchronized void clear() {
         completed.clear();
         undone.clear();
