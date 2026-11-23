@@ -176,7 +176,7 @@ class RendererDecoratorTest {
         return new Color(image.getRGB(4, 4), true);
     }
 
-    /** A pixel on the frame drawn along the inner edge of the cell. */
+    /** 세포 안쪽 가장자리에 그려지는 테두리 위의 픽셀. */
     private Color frame() {
         return new Color(image.getRGB(1, 4), true);
     }

@@ -11,7 +11,7 @@ class ResidentAgeTest {
     private static final Cell D = Cell.DUMMY;
     private static final Rectangle SURFACE = new Rectangle(0, 0, 8, 8);
 
-    /** Keeps a cell alive whatever its neighbors are. */
+    /** 이웃 수와 무관하게 세포를 살려 둔다. */
     private static final LifeRule ALWAYS_ALIVE = (alive, neighbors) -> true;
     private static final LifeRule ALWAYS_DEAD = (alive, neighbors) -> false;
 
@@ -99,7 +99,7 @@ class ResidentAgeTest {
     @DisplayName("Restoring a board from a memento restarts every live cell at age one")
     void restoringFromMementoRestartsAge() {
         Neighborhood board = new Neighborhood(2, new Resident());
-        board.changeRule(ALWAYS_ALIVE);     // also wakes the idle board
+        board.changeRule(ALWAYS_ALIVE);     // 멈춰 있던 보드도 함께 깨운다
         board.figureNextState(D, D, D, D, D, D, D, D);
         board.transition();
         board.figureNextState(D, D, D, D, D, D, D, D);

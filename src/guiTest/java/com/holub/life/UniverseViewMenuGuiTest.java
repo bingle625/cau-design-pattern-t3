@@ -129,7 +129,7 @@ class UniverseViewMenuGuiTest {
     void stillLifeAgesWhileTheBoardKeepsChanging() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             placeBlock(2, 2);
-            placeBlinker(20, 20);       // keeps the board changing so ticks advance
+            placeBlinker(20, 20);       // 보드가 계속 변해야 틱이 진행된다
             viewItem(AGE).doClick();
             viewItem(SURVIVORS).doClick();
         });
@@ -198,7 +198,7 @@ class UniverseViewMenuGuiTest {
         return pixel(column * CELL_SIZE + CELL_SIZE / 2, row * CELL_SIZE + CELL_SIZE / 2);
     }
 
-    /** A pixel on the frame the highlight effects draw inside a cell. */
+    /** 강조 효과가 세포 안쪽에 그리는 테두리 위의 픽셀. */
     private static Color framePixel(int column, int row) {
         return pixel(column * CELL_SIZE + 1, row * CELL_SIZE + CELL_SIZE / 2);
     }
