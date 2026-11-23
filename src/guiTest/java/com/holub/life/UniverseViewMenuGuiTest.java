@@ -125,7 +125,7 @@ class UniverseViewMenuGuiTest {
     }
 
     @Test
-    @DisplayName("A still life grows darker and gains the survivor frame as generations pass")
+    @DisplayName("A still life changes color and gains the survivor frame as generations pass")
     void stillLifeAgesWhileTheBoardKeepsChanging() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             placeBlock(2, 2);
@@ -143,7 +143,7 @@ class UniverseViewMenuGuiTest {
             Color old = centerPixel(2, 2);
             assertEquals(BasicRenderer.LIVE_COLOR, young);
             assertNotEquals(young, old);
-            assertTrue(old.getRed() < young.getRed(), "the old block is darker");
+            assertTrue(old.getBlue() > young.getBlue(), "the old block moved toward the oldest color");
             assertEquals(SurvivorDecorator.FRAME_COLOR, framePixel(2, 2));
         });
     }
