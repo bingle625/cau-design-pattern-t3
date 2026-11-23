@@ -2,7 +2,10 @@ package com.holub.life;
 
 import java.io.*;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import java.awt.*;
 import javax.swing.*;
@@ -34,6 +37,12 @@ public class Universe extends JPanel
 	private final Map<String, LifeRule> rules = new LinkedHashMap<>();
 	private LifeRule selectedRule = new ConwayRule();
 	private static final String RULE_MENU = "Rule";
+	private static final String VIEW_MENU = "View";
+	private static final String NORMAL_VIEW = "Normal";
+
+	/** View 메뉴가 제공하는 모든 효과. 감싸는 순서대로 담는다. */
+	private final Map<String, UnaryOperator<CellRenderer>> viewEffects = new LinkedHashMap<>();
+	private final Set<String> activeViewEffects = new LinkedHashSet<>();
 	private static	final Universe 	theInstance = new Universe();
 	private final Publisher statisticsPublisher = new Publisher();
 	private final CommandHistory history = new CommandHistory();
@@ -163,6 +172,60 @@ public class Universe extends JPanel
 		rules.forEach((name, rule) ->
 			MenuSite.addLine(this, RULE_MENU, name, event -> selectRule(rule)));
 		updateRuleMenu();
+
+		viewEffects.put("Show Cell Age", AgeDecorator::new);
+		viewEffects.put("Highlight Newborn", NewbornDecorator::new);
+		viewEffects.put("Highlight Survivors", SurvivorDecorator::new);
+		MenuSite.addLine(this, VIEW_MENU, NORMAL_VIEW, event -> showNormalView());
+		viewEffects.keySet().forEach(name ->
+			MenuSite.addLine(this, VIEW_MENU, name, event -> toggleViewEffect(name)));
+		updateViewMenu();
+	}
+
+	private void showNormalView()
+	{
+		synchronized( history )
+		{
+			activeViewEffects.clear();
+			applyViewEffects();
+		}
+		updateViewMenu();
+		repaint();
+	}
+
+	private void toggleViewEffect(String name)
+	{
+		synchronized( history )
+		{
+			if( !activeViewEffects.remove(name) )
+				activeViewEffects.add(name);
+			applyViewEffects();
+		}
+		updateViewMenu();
+		repaint();
+	}
+
+	/** 켜져 있는 효과마다 데코레이터 하나씩 기본 렌더러를 감싼다. */
+	private void applyViewEffects()
+	{
+		CellRenderer renderer = new BasicRenderer();
+		for( Map.Entry<String, UnaryOperator<CellRenderer>> effect : viewEffects.entrySet() )
+			if( activeViewEffects.contains(effect.getKey()) )
+				renderer = effect.getValue().apply(renderer);
+		outermostCell.changeRenderer(renderer);
+	}
+
+	private void updateViewMenu()
+	{
+		checkViewItem(NORMAL_VIEW, activeViewEffects.isEmpty());
+		viewEffects.keySet().forEach(name ->
+			checkViewItem(name, activeViewEffects.contains(name)));
+	}
+
+	private void checkViewItem(String name, boolean checked)
+	{
+		JMenuItem item = MenuSite.getMyMenuItem(this, VIEW_MENU, name);
+		item.setText(checked ? "✓ " + name : name);
 	}
 
 	private void selectRule(LifeRule rule)
@@ -340,7 +403,11 @@ public class Universe extends JPanel
 						panelBounds.x = 0;
 						panelBounds.y = 0;
 						synchronized( history )
-						{	outermostCell.redraw(g, panelBounds, false); //{=Universe.redraw2}
+						{	// 효과는 세포의 생사가 그대로여도 모습을 바꿀 수
+							// 있으므로, 효과가 켜져 있는 동안에는 안정된
+							// 블록도 다시 그려야 한다.
+							boolean drawAll = !activeViewEffects.isEmpty();
+							outermostCell.redraw(g, panelBounds, drawAll); //{=Universe.redraw2}
 						}
 					}
 					finally

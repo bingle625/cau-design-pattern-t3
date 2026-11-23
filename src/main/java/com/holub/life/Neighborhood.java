@@ -98,6 +98,22 @@ public final class Neighborhood implements Cell
 			}
 	}
 
+	/** 앞으로 세포를 그릴 렌더러를 모든 세포에 전달한다.
+	 *  보드 자체는 바뀌지 않으므로 다시 그리기는 호출자가 요청해야 한다.
+	 */
+	void changeRenderer(CellRenderer renderer)
+	{
+		Objects.requireNonNull(renderer);
+		for( Cell[] row : grid )
+			for( Cell cell : row )
+			{
+				if( cell instanceof Neighborhood neighborhood )
+					neighborhood.changeRenderer(renderer);
+				else if( cell instanceof Resident resident )
+					resident.setRenderer(renderer);
+			}
+	}
+
 	/** Became stable on the last clock tick. One more refresh is
 	 *  required.
 	 */

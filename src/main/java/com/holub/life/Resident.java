@@ -3,8 +3,6 @@ package com.holub.life;
 import java.awt.*;
 import java.util.Objects;
 import javax.swing.*;
-import com.holub.ui.Colors;	// Contains constants specifying various
-							// colors not defined in java.awt.Color.
 import com.holub.life.Cell;
 import com.holub.life.Storable;
 import com.holub.life.Direction;
@@ -20,13 +18,18 @@ import com.holub.life.Universe;
 
 public final class Resident implements Cell
 {
-	private static final Color BORDER_COLOR = Colors.DARK_YELLOW;
-	private static final Color LIVE_COLOR 	= Color.RED;
-	private static final Color DEAD_COLOR   = Colors.LIGHT_YELLOW;
+	/** 상태가 없으므로 View를 고르기 전까지 모든 세포가 공유한다. */
+	private static final CellRenderer DEFAULT_RENDERER = new BasicRenderer();
 
 	private boolean amAlive 	= false;
 	private boolean willBeAlive	= false;
+
+	/** 이 세포가 살아남은 세대 수. 죽었으면 0, 방금 나타났으면
+	 *  (탄생, 클릭, 불러오기) 1이다.
+	 */
+	private int age = 0;
 	private LifeRule rule;
+	private CellRenderer renderer = DEFAULT_RENDERER;
 
 	public Resident()
 	{
@@ -41,6 +44,11 @@ public final class Resident implements Cell
 	void setRule(LifeRule rule)
 	{
 		this.rule = Objects.requireNonNull(rule);
+	}
+
+	void setRenderer(CellRenderer renderer)
+	{
+		this.renderer = Objects.requireNonNull(renderer);
 	}
 
 	private boolean isStable(){return amAlive == willBeAlive; }
@@ -96,32 +104,28 @@ public final class Resident implements Cell
 
 	public boolean transition()
 	{	boolean changed = !isStable();
+		age = !willBeAlive ? 0 : amAlive ? age + 1 : 1;
 		amAlive = willBeAlive;
 		return changed;
 	}
 
 	public void redraw(Graphics g, Rectangle here, boolean drawAll)
-    {   g = g.create();
-		g.setColor(amAlive ? LIVE_COLOR : DEAD_COLOR );
-		g.fillRect(here.x+1, here.y+1, here.width-1, here.height-1);
-
-		// Doesn't draw a line on the far right and bottom of the
-		// grid, but that's life, so to speak. It's not worth the
-		// code for the special case.
-
-		g.setColor( BORDER_COLOR );
-		g.drawLine( here.x, here.y, here.x, here.y + here.height );
-		g.drawLine( here.x, here.y, here.x + here.width, here.y  );
-		g.dispose();
+	{	renderer.draw(g, here, amAlive, age);
 	}
 
 	public void userClicked(Point here, Rectangle surface)
 	{	amAlive = !amAlive;
+		age = amAlive ? 1 : 0;
 	}
 
-	public void	   clear()			{amAlive = willBeAlive = false; }
+	public void	   clear()			{amAlive = willBeAlive = false; age = 0; }
+	int			   age()			{return age;					}
 	public boolean isAlive()		{return amAlive;			    }
-	public Cell    create()			{return new Resident(rule);		}
+	public Cell    create()
+	{	Resident copy = new Resident(rule);
+		copy.renderer = renderer;
+		return copy;
+	}
 	public int 	   widthInCells()	{return 1;}
 
 	public int countAlive()
@@ -136,7 +140,9 @@ public final class Resident implements Cell
 	{
 		Memento memento = (Memento)blob;
 		if( doLoad )
-		{	if( amAlive = willBeAlive = memento.isAlive(upperLeft) )
+		{	amAlive = willBeAlive = memento.isAlive(upperLeft);
+			age = amAlive ? 1 : 0;		// memento에는 이력이 없다
+			if( amAlive )
 				return true;
 		}
 		else if( amAlive )  					// store only live cells
