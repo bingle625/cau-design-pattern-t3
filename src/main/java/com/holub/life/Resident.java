@@ -23,6 +23,11 @@ public final class Resident implements Cell
 
 	private boolean amAlive 	= false;
 	private boolean willBeAlive	= false;
+
+	/** Generations this cell has stayed alive. 0 when dead, 1 when it
+	 *  has just appeared (born, clicked or loaded).
+	 */
+	private int age = 0;
 	private LifeRule rule;
 	private CellRenderer renderer = DEFAULT_RENDERER;
 
@@ -99,19 +104,22 @@ public final class Resident implements Cell
 
 	public boolean transition()
 	{	boolean changed = !isStable();
+		age = !willBeAlive ? 0 : amAlive ? age + 1 : 1;
 		amAlive = willBeAlive;
 		return changed;
 	}
 
 	public void redraw(Graphics g, Rectangle here, boolean drawAll)
-	{	renderer.draw(g, here, amAlive, amAlive ? 1 : 0);
+	{	renderer.draw(g, here, amAlive, age);
 	}
 
 	public void userClicked(Point here, Rectangle surface)
 	{	amAlive = !amAlive;
+		age = amAlive ? 1 : 0;
 	}
 
-	public void	   clear()			{amAlive = willBeAlive = false; }
+	public void	   clear()			{amAlive = willBeAlive = false; age = 0; }
+	int			   age()			{return age;					}
 	public boolean isAlive()		{return amAlive;			    }
 	public Cell    create()
 	{	Resident copy = new Resident(rule);
@@ -132,7 +140,9 @@ public final class Resident implements Cell
 	{
 		Memento memento = (Memento)blob;
 		if( doLoad )
-		{	if( amAlive = willBeAlive = memento.isAlive(upperLeft) )
+		{	amAlive = willBeAlive = memento.isAlive(upperLeft);
+			age = amAlive ? 1 : 0;		// a memento keeps no history
+			if( amAlive )
 				return true;
 		}
 		else if( amAlive )  					// store only live cells
