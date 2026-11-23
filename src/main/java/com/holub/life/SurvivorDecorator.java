@@ -4,9 +4,9 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 
-/** Frames the cells that have stayed alive for many generations. */
+/** 여러 세대를 살아남은 세포에 테두리를 그린다. */
 public final class SurvivorDecorator extends RendererDecorator {
-    /** A cell counts as a survivor from this age on. */
+    /** 이 나이부터 장수 세포로 본다. */
     static final int SURVIVOR_AGE = 5;
     static final Color FRAME_COLOR = Color.CYAN;
 

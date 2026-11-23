@@ -5,13 +5,12 @@ import java.awt.Graphics;
 import java.awt.Rectangle;
 
 /**
- * Shifts a live cell from the plain live color toward {@link #OLDEST_COLOR}
- * the longer it has stayed alive. A change of hue is used rather than a
- * darker shade, because shades of one color are hard to tell apart on
- * cells that are only a few pixels wide.
+ * 살아 있는 세포를 오래 살아남을수록 기본 색에서 {@link #OLDEST_COLOR} 쪽으로
+ * 바꾼다. 명암이 아니라 색상을 바꾸는 이유는, 몇 픽셀짜리 세포에서는
+ * 같은 색의 명암 차이를 구분하기 어렵기 때문이다.
  */
 public final class AgeDecorator extends RendererDecorator {
-    /** Cells of this age or older are all drawn in the oldest color. */
+    /** 이 나이 이상인 세포는 모두 최고령 색으로 그린다. */
     static final int OLDEST_AGE = 8;
     static final Color OLDEST_COLOR = Color.BLUE;
 

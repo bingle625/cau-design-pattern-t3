@@ -4,7 +4,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 
-/** Frames the cells that appeared in the current generation. */
+/** 이번 세대에 나타난 세포에 테두리를 그린다. */
 public final class NewbornDecorator extends RendererDecorator {
     static final Color FRAME_COLOR = Color.WHITE;
 

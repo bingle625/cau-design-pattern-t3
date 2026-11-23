@@ -6,7 +6,7 @@ import java.awt.Rectangle;
 
 import com.holub.ui.Colors;
 
-/** The original look of a cell: a flat live or dead color inside a grid line. */
+/** 원본의 세포 표현. 격자선 안쪽을 생사에 따른 단색으로 채운다. */
 public final class BasicRenderer implements CellRenderer {
     static final Color BORDER_COLOR = Colors.DARK_YELLOW;
     static final Color LIVE_COLOR = Color.RED;
