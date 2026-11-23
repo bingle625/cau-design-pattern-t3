@@ -3,8 +3,6 @@ package com.holub.life;
 import java.awt.*;
 import java.util.Objects;
 import javax.swing.*;
-import com.holub.ui.Colors;	// Contains constants specifying various
-							// colors not defined in java.awt.Color.
 import com.holub.life.Cell;
 import com.holub.life.Storable;
 import com.holub.life.Direction;
@@ -20,13 +18,13 @@ import com.holub.life.Universe;
 
 public final class Resident implements Cell
 {
-	private static final Color BORDER_COLOR = Colors.DARK_YELLOW;
-	private static final Color LIVE_COLOR 	= Color.RED;
-	private static final Color DEAD_COLOR   = Colors.LIGHT_YELLOW;
+	/** Stateless, so every resident can share it until a view is chosen. */
+	private static final CellRenderer DEFAULT_RENDERER = new BasicRenderer();
 
 	private boolean amAlive 	= false;
 	private boolean willBeAlive	= false;
 	private LifeRule rule;
+	private CellRenderer renderer = DEFAULT_RENDERER;
 
 	public Resident()
 	{
@@ -41,6 +39,11 @@ public final class Resident implements Cell
 	void setRule(LifeRule rule)
 	{
 		this.rule = Objects.requireNonNull(rule);
+	}
+
+	void setRenderer(CellRenderer renderer)
+	{
+		this.renderer = Objects.requireNonNull(renderer);
 	}
 
 	private boolean isStable(){return amAlive == willBeAlive; }
@@ -101,18 +104,7 @@ public final class Resident implements Cell
 	}
 
 	public void redraw(Graphics g, Rectangle here, boolean drawAll)
-    {   g = g.create();
-		g.setColor(amAlive ? LIVE_COLOR : DEAD_COLOR );
-		g.fillRect(here.x+1, here.y+1, here.width-1, here.height-1);
-
-		// Doesn't draw a line on the far right and bottom of the
-		// grid, but that's life, so to speak. It's not worth the
-		// code for the special case.
-
-		g.setColor( BORDER_COLOR );
-		g.drawLine( here.x, here.y, here.x, here.y + here.height );
-		g.drawLine( here.x, here.y, here.x + here.width, here.y  );
-		g.dispose();
+	{	renderer.draw(g, here, amAlive, amAlive ? 1 : 0);
 	}
 
 	public void userClicked(Point here, Rectangle surface)
@@ -121,7 +113,11 @@ public final class Resident implements Cell
 
 	public void	   clear()			{amAlive = willBeAlive = false; }
 	public boolean isAlive()		{return amAlive;			    }
-	public Cell    create()			{return new Resident(rule);		}
+	public Cell    create()
+	{	Resident copy = new Resident(rule);
+		copy.renderer = renderer;
+		return copy;
+	}
 	public int 	   widthInCells()	{return 1;}
 
 	public int countAlive()
