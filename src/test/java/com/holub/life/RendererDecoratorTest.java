@@ -64,21 +64,46 @@ class RendererDecoratorTest {
     }
 
     @Test
-    @DisplayName("Age shading darkens a cell further with every generation")
-    void ageDarkensOlderCells() {
+    @DisplayName("Age shading moves a cell further from the live color with every generation")
+    void ageShiftsOlderCellsTowardOldestColor() {
         CellRenderer renderer = new AgeDecorator(new BasicRenderer());
 
         renderer.draw(graphics, CELL, true, 3);
-        int young = center().getRed();
-        renderer.draw(graphics, CELL, true, 7);
-        int old = center().getRed();
+        Color young = center();
+        renderer.draw(graphics, CELL, true, 6);
+        Color old = center();
 
-        assertTrue(young < LIVE.getRed(), "an aged cell is darker than a new one");
-        assertTrue(old < young, "an older cell is darker still");
+        assertTrue(young.getBlue() > LIVE.getBlue(), "an aged cell has left the live color");
+        assertTrue(old.getBlue() > young.getBlue(), "an older cell is closer to the oldest color");
+        assertTrue(old.getRed() < young.getRed());
     }
 
     @Test
-    @DisplayName("Age shading stops getting darker past the oldest shade")
+    @DisplayName("Successive ages differ enough to be told apart at a glance")
+    void neighboringAgesAreClearlyDifferent() {
+        CellRenderer renderer = new AgeDecorator(new BasicRenderer());
+
+        for (int age = 1; age < AgeDecorator.OLDEST_AGE; ++age) {
+            renderer.draw(graphics, CELL, true, age);
+            Color younger = center();
+            renderer.draw(graphics, CELL, true, age + 1);
+            Color older = center();
+
+            assertTrue(older.getBlue() - younger.getBlue() >= 30,
+                    "age " + age + " and " + (age + 1) + " look alike");
+        }
+    }
+
+    @Test
+    @DisplayName("The oldest cells are drawn in the oldest color")
+    void oldestCellReachesOldestColor() {
+        new AgeDecorator(new BasicRenderer()).draw(graphics, CELL, true, AgeDecorator.OLDEST_AGE);
+
+        assertEquals(AgeDecorator.OLDEST_COLOR, center());
+    }
+
+    @Test
+    @DisplayName("Age shading stops changing past the oldest age")
     void ageShadeIsCapped() {
         CellRenderer renderer = new AgeDecorator(new BasicRenderer());
 
