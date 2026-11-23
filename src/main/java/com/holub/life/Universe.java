@@ -2,7 +2,10 @@ package com.holub.life;
 
 import java.io.*;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import java.awt.*;
 import javax.swing.*;
@@ -34,6 +37,12 @@ public class Universe extends JPanel
 	private final Map<String, LifeRule> rules = new LinkedHashMap<>();
 	private LifeRule selectedRule = new ConwayRule();
 	private static final String RULE_MENU = "Rule";
+	private static final String VIEW_MENU = "View";
+	private static final String NORMAL_VIEW = "Normal";
+
+	/** Every effect the View menu offers, in the order they are stacked. */
+	private final Map<String, UnaryOperator<CellRenderer>> viewEffects = new LinkedHashMap<>();
+	private final Set<String> activeViewEffects = new LinkedHashSet<>();
 	private static	final Universe 	theInstance = new Universe();
 	private final Publisher statisticsPublisher = new Publisher();
 	private final CommandHistory history = new CommandHistory();
@@ -163,6 +172,60 @@ public class Universe extends JPanel
 		rules.forEach((name, rule) ->
 			MenuSite.addLine(this, RULE_MENU, name, event -> selectRule(rule)));
 		updateRuleMenu();
+
+		viewEffects.put("Show Cell Age", AgeDecorator::new);
+		viewEffects.put("Highlight Newborn", NewbornDecorator::new);
+		viewEffects.put("Highlight Survivors", SurvivorDecorator::new);
+		MenuSite.addLine(this, VIEW_MENU, NORMAL_VIEW, event -> showNormalView());
+		viewEffects.keySet().forEach(name ->
+			MenuSite.addLine(this, VIEW_MENU, name, event -> toggleViewEffect(name)));
+		updateViewMenu();
+	}
+
+	private void showNormalView()
+	{
+		synchronized( history )
+		{
+			activeViewEffects.clear();
+			applyViewEffects();
+		}
+		updateViewMenu();
+		repaint();
+	}
+
+	private void toggleViewEffect(String name)
+	{
+		synchronized( history )
+		{
+			if( !activeViewEffects.remove(name) )
+				activeViewEffects.add(name);
+			applyViewEffects();
+		}
+		updateViewMenu();
+		repaint();
+	}
+
+	/** Wrap the basic renderer in one decorator per active effect. */
+	private void applyViewEffects()
+	{
+		CellRenderer renderer = new BasicRenderer();
+		for( Map.Entry<String, UnaryOperator<CellRenderer>> effect : viewEffects.entrySet() )
+			if( activeViewEffects.contains(effect.getKey()) )
+				renderer = effect.getValue().apply(renderer);
+		outermostCell.changeRenderer(renderer);
+	}
+
+	private void updateViewMenu()
+	{
+		checkViewItem(NORMAL_VIEW, activeViewEffects.isEmpty());
+		viewEffects.keySet().forEach(name ->
+			checkViewItem(name, activeViewEffects.contains(name)));
+	}
+
+	private void checkViewItem(String name, boolean checked)
+	{
+		JMenuItem item = MenuSite.getMyMenuItem(this, VIEW_MENU, name);
+		item.setText(checked ? "✓ " + name : name);
 	}
 
 	private void selectRule(LifeRule rule)
@@ -340,7 +403,11 @@ public class Universe extends JPanel
 						panelBounds.x = 0;
 						panelBounds.y = 0;
 						synchronized( history )
-						{	outermostCell.redraw(g, panelBounds, false); //{=Universe.redraw2}
+						{	// An effect can change how a cell looks even though
+							// the cell kept its state, so stable blocks must be
+							// redrawn too while any effect is on.
+							boolean drawAll = !activeViewEffects.isEmpty();
+							outermostCell.redraw(g, panelBounds, drawAll); //{=Universe.redraw2}
 						}
 					}
 					finally
