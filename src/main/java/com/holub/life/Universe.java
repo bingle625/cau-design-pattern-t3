@@ -40,7 +40,7 @@ public class Universe extends JPanel
 	private static final String VIEW_MENU = "View";
 	private static final String NORMAL_VIEW = "Normal";
 
-	/** Every effect the View menu offers, in the order they are stacked. */
+	/** View 메뉴가 제공하는 모든 효과. 감싸는 순서대로 담는다. */
 	private final Map<String, UnaryOperator<CellRenderer>> viewEffects = new LinkedHashMap<>();
 	private final Set<String> activeViewEffects = new LinkedHashSet<>();
 	private static	final Universe 	theInstance = new Universe();
@@ -205,7 +205,7 @@ public class Universe extends JPanel
 		repaint();
 	}
 
-	/** Wrap the basic renderer in one decorator per active effect. */
+	/** 켜져 있는 효과마다 데코레이터 하나씩 기본 렌더러를 감싼다. */
 	private void applyViewEffects()
 	{
 		CellRenderer renderer = new BasicRenderer();
@@ -403,9 +403,9 @@ public class Universe extends JPanel
 						panelBounds.x = 0;
 						panelBounds.y = 0;
 						synchronized( history )
-						{	// An effect can change how a cell looks even though
-							// the cell kept its state, so stable blocks must be
-							// redrawn too while any effect is on.
+						{	// 효과는 세포의 생사가 그대로여도 모습을 바꿀 수
+							// 있으므로, 효과가 켜져 있는 동안에는 안정된
+							// 블록도 다시 그려야 한다.
 							boolean drawAll = !activeViewEffects.isEmpty();
 							outermostCell.redraw(g, panelBounds, drawAll); //{=Universe.redraw2}
 						}

@@ -98,8 +98,8 @@ public final class Neighborhood implements Cell
 			}
 	}
 
-	/** Hand every resident the renderer that draws it from now on.
-	 *  The board itself is untouched, so the caller must repaint.
+	/** 앞으로 세포를 그릴 렌더러를 모든 세포에 전달한다.
+	 *  보드 자체는 바뀌지 않으므로 다시 그리기는 호출자가 요청해야 한다.
 	 */
 	void changeRenderer(CellRenderer renderer)
 	{

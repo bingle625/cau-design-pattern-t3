@@ -18,14 +18,14 @@ import com.holub.life.Universe;
 
 public final class Resident implements Cell
 {
-	/** Stateless, so every resident can share it until a view is chosen. */
+	/** 상태가 없으므로 View를 고르기 전까지 모든 세포가 공유한다. */
 	private static final CellRenderer DEFAULT_RENDERER = new BasicRenderer();
 
 	private boolean amAlive 	= false;
 	private boolean willBeAlive	= false;
 
-	/** Generations this cell has stayed alive. 0 when dead, 1 when it
-	 *  has just appeared (born, clicked or loaded).
+	/** 이 세포가 살아남은 세대 수. 죽었으면 0, 방금 나타났으면
+	 *  (탄생, 클릭, 불러오기) 1이다.
 	 */
 	private int age = 0;
 	private LifeRule rule;
@@ -141,7 +141,7 @@ public final class Resident implements Cell
 		Memento memento = (Memento)blob;
 		if( doLoad )
 		{	amAlive = willBeAlive = memento.isAlive(upperLeft);
-			age = amAlive ? 1 : 0;		// a memento keeps no history
+			age = amAlive ? 1 : 0;		// memento에는 이력이 없다
 			if( amAlive )
 				return true;
 		}
