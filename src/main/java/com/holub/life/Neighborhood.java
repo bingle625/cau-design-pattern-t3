@@ -98,6 +98,22 @@ public final class Neighborhood implements Cell
 			}
 	}
 
+	/** Hand every resident the renderer that draws it from now on.
+	 *  The board itself is untouched, so the caller must repaint.
+	 */
+	void changeRenderer(CellRenderer renderer)
+	{
+		Objects.requireNonNull(renderer);
+		for( Cell[] row : grid )
+			for( Cell cell : row )
+			{
+				if( cell instanceof Neighborhood neighborhood )
+					neighborhood.changeRenderer(renderer);
+				else if( cell instanceof Resident resident )
+					resident.setRenderer(renderer);
+			}
+	}
+
 	/** Became stable on the last clock tick. One more refresh is
 	 *  required.
 	 */
