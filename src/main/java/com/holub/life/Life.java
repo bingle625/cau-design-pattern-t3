@@ -47,6 +47,7 @@ public final class Life extends JFrame
 		getContentPane().add( statisticsPanel, BorderLayout.SOUTH );
 		universe.addStatisticsListener(statisticsPanel);
 		statisticsSubscribed = true;
+		AutoStopMenu.install( Clock.instance(), universe );
 
 		statisticsPanel.addHierarchyListener(event -> {
 			if ((event.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) != 0
