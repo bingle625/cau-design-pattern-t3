@@ -51,6 +51,14 @@ public final class Resident implements Cell
 		this.renderer = Objects.requireNonNull(renderer);
 	}
 
+	/** 스냅샷에 보관했던 나이를 되돌린다. 생사는 이미 Memento로 복원되어
+	 *  있어야 하며, 죽은 세포는 나이가 없다.
+	 */
+	void restoreAge(int savedAge)
+	{
+		age = amAlive ? savedAge : 0;
+	}
+
 	private boolean isStable(){return amAlive == willBeAlive; }
 
 	/** figure the next state.

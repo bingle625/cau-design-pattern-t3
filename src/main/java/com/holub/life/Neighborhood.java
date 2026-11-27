@@ -3,6 +3,7 @@ package com.holub.life;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
+import java.util.function.IntConsumer;
 import java.io.*;
 import javax.swing.*;
 
@@ -111,6 +112,34 @@ public final class Neighborhood implements Cell
 					neighborhood.changeRenderer(renderer);
 				else if( cell instanceof Resident resident )
 					resident.setRenderer(renderer);
+			}
+	}
+
+	/** 모든 세포의 나이를 칸 순서대로 넘긴다. Memento는 생사만 담으므로
+	 *  Undo/Redo 스냅샷이 나이를 따로 보관할 때 쓴다.
+	 */
+	void collectAges(IntConsumer ages)
+	{
+		for( Cell[] row : grid )
+			for( Cell cell : row )
+			{
+				if( cell instanceof Neighborhood neighborhood )
+					neighborhood.collectAges(ages);
+				else if( cell instanceof Resident resident )
+					ages.accept(resident.age());
+			}
+	}
+
+	/** {@link #collectAges}와 같은 순서로 나이를 되돌린다. */
+	void restoreAges(PrimitiveIterator.OfInt ages)
+	{
+		for( Cell[] row : grid )
+			for( Cell cell : row )
+			{
+				if( cell instanceof Neighborhood neighborhood )
+					neighborhood.restoreAges(ages);
+				else if( cell instanceof Resident resident )
+					resident.restoreAge(ages.nextInt());
 			}
 	}
 

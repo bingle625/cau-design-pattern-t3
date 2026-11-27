@@ -149,24 +149,29 @@ class UniverseViewMenuGuiTest {
     }
 
     @Test
-    @DisplayName("Undo restarts the age of the restored cells")
-    void undoRestartsAge() throws Exception {
+    @DisplayName("Undo shows the restored cells in the age color of that generation, and Redo brings the newer color back")
+    void undoRedoRestoresAgeColor() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             placeBlock(2, 2);
             placeBlinker(20, 20);
             viewItem(AGE).doClick();
         });
-        for (int tick = 0; tick < 3; ++tick) {
+        for (int tick = 0; tick < 2; ++tick) {
             SwingUtilities.invokeAndWait(clock::tick);
         }
-        Color aged = onEdt(() -> centerPixel(2, 2));
+        Color olderGeneration = onEdt(() -> centerPixel(2, 2));
+        SwingUtilities.invokeAndWait(clock::tick);
+        Color latestGeneration = onEdt(() -> centerPixel(2, 2));
 
         assertTrue(universe.undo());
+        Color afterUndo = onEdt(() -> centerPixel(2, 2));
+        assertTrue(universe.redo());
+        Color afterRedo = onEdt(() -> centerPixel(2, 2));
 
-        SwingUtilities.invokeAndWait(() -> {
-            assertNotEquals(BasicRenderer.LIVE_COLOR, aged);
-            assertEquals(BasicRenderer.LIVE_COLOR, centerPixel(2, 2));
-        });
+        assertNotEquals(olderGeneration, latestGeneration);
+        assertNotEquals(BasicRenderer.LIVE_COLOR, afterUndo);
+        assertEquals(olderGeneration, afterUndo);
+        assertEquals(latestGeneration, afterRedo);
     }
 
     private static JMenuItem viewItem(String name) {
