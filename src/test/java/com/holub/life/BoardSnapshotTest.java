@@ -78,6 +78,42 @@ class BoardSnapshotTest {
         }
     }
 
+    @Test
+    @DisplayName("Undo and Redo of generations bring back the ages the cells had in that generation")
+    void undoRedoRestoresAges() {
+        // A block that keeps surviving, plus a blinker so every generation changes the board.
+        Cell board = newBoard(new Point(0, 0), new Point(1, 0), new Point(0, 1), new Point(1, 1),
+                new Point(20, 19), new Point(20, 20), new Point(20, 21));
+        Resident blockCorner = (Resident) ((Neighborhood) board.edge(0, 0)).edge(0, 0);
+        CommandHistory history = new CommandHistory();
+        for (int generation = 0; generation < 3; generation++) {
+            history.execute(new AdvanceGenerationCommand(board, () -> { }));
+        }
+        assertEquals(4, blockCorner.age());
+
+        history.undo();
+        assertEquals(3, blockCorner.age());
+        history.undo();
+        assertEquals(2, blockCorner.age());
+        history.redo();
+        assertEquals(3, blockCorner.age());
+        history.redo();
+        assertEquals(4, blockCorner.age());
+    }
+
+    @Test
+    @DisplayName("A cell born after the snapshot has no age once the snapshot is restored")
+    void restoredSnapshotDropsLaterCells() {
+        Cell board = newBoard(new Point(0, 0));
+        Resident corner = (Resident) ((Neighborhood) board.edge(0, 0)).edge(0, 0);
+        BoardSnapshot empty = BoardSnapshot.capture(newBoard());
+        assertEquals(1, corner.age());
+
+        empty.restoreTo(board);
+
+        assertEquals(0, corner.age());
+    }
+
     private static Stream<Arguments> boundaryPatterns() {
         return Stream.of(
                 Arguments.of("Blinker births across a vertical block boundary",

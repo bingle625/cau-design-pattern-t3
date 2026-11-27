@@ -96,21 +96,47 @@ class ResidentAgeTest {
     }
 
     @Test
-    @DisplayName("Restoring a board from a memento restarts every live cell at age one")
-    void restoringFromMementoRestartsAge() {
-        Neighborhood board = new Neighborhood(2, new Resident());
-        board.changeRule(ALWAYS_ALIVE);     // 멈춰 있던 보드도 함께 깨운다
-        board.figureNextState(D, D, D, D, D, D, D, D);
-        board.transition();
-        board.figureNextState(D, D, D, D, D, D, D, D);
-        board.transition();
+    @DisplayName("Restoring a board snapshot (Undo/Redo) brings back each live cell's age")
+    void restoringSnapshotKeepsAge() {
+        Neighborhood board = agedBoard();
         Resident corner = (Resident) board.edge(0, 0);
         assertEquals(2, corner.age());
 
         BoardSnapshot snapshot = BoardSnapshot.capture(board);
+        advanceBoard(board);
+        assertEquals(3, corner.age());
         snapshot.restoreTo(board);
 
+        assertEquals(2, corner.age());
+    }
+
+    @Test
+    @DisplayName("Loading a memento directly (Grid > Load) still starts every live cell at age one")
+    void loadingMementoRestartsAge() {
+        Neighborhood board = agedBoard();
+        Resident corner = (Resident) board.edge(0, 0);
+        assertEquals(2, corner.age());
+
+        Storable saved = board.createMemento();
+        board.transfer(saved, new Point(0, 0), Cell.STORE);
+        board.clear();
+        board.transfer(saved, new Point(0, 0), Cell.LOAD);
+
         assertEquals(1, corner.age());
+    }
+
+    /** 2×2 보드를 모두 살려 두 세대 진행시켜, 모든 세포의 나이를 2로 만든다. */
+    private static Neighborhood agedBoard() {
+        Neighborhood board = new Neighborhood(2, new Resident());
+        board.changeRule(ALWAYS_ALIVE);     // 멈춰 있던 보드도 함께 깨운다
+        advanceBoard(board);
+        advanceBoard(board);
+        return board;
+    }
+
+    private static void advanceBoard(Neighborhood board) {
+        board.figureNextState(D, D, D, D, D, D, D, D);
+        board.transition();
     }
 
     private static void advance(Resident cell) {
